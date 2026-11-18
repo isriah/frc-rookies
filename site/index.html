@@ -28,6 +28,7 @@
   <div class="controls">
     <select id="country" aria-label="Country"><option value="">All countries</option></select>
     <select id="state" aria-label="State or province"><option value="">All states/provinces</option></select>
+    <select id="district" aria-label="FIRST district"><option value="">All districts</option></select>
     <label class="chk"><input type="checkbox" id="onlyNew"> New only</label>
     <label class="chk"><input type="checkbox" id="hideRemoved" checked> Hide removed</label>
     <button id="csv" type="button">Download CSV</button>
@@ -71,10 +72,11 @@ const isNew = (t) => !t.removed && t.firstSeen && Date.parse(t.firstSeen) > newS
 
 function filtered() {
   const words = $('q').value.toLowerCase().split(/\s+/).filter(Boolean);
-  const country = $('country').value, state = $('state').value, onlyNew = $('onlyNew').checked, hideRemoved = $('hideRemoved').checked;
+  const country = $('country').value, state = $('state').value, district = $('district').value, onlyNew = $('onlyNew').checked, hideRemoved = $('hideRemoved').checked;
   const list = teams.filter((t) =>
     (!country || t.country === country) &&
     (!state || t.state === state) &&
+    (!district || (district === NO_DISTRICT ? !t.district : t.district === district)) &&
     (!onlyNew || isNew(t)) &&
     (!hideRemoved || !t.removed) &&
     words.every((w) => t._search.includes(w)));
@@ -143,6 +145,21 @@ function counts(list, key) {
   return [...m].sort((a, b) => a[0].localeCompare(b[0]));
 }
 
+// FIRST district codes as the API gives them; unknown codes show as the code.
+const DISTRICT_NAMES = { CA: 'California', FCH: 'Chesapeake', FIM: 'Michigan', FIN: 'Indiana', FMA: 'Mid-Atlantic',
+  FNC: 'North Carolina', FSC: 'South Carolina', ISR: 'Israel', NE: 'New England', ONT: 'Ontario', PCH: 'Peachtree',
+  PNW: 'Pacific Northwest', TX: 'Texas', WIN: 'Wisconsin' };
+const NO_DISTRICT = '-';
+
+function fillDistricts(active) {
+  const named = counts(active, 'district').map(([code, n]) => [code, `${DISTRICT_NAMES[code] ?? code} (${n})`]);
+  named.sort((a, b) => a[1].localeCompare(b[1]));
+  const none = active.filter((t) => !t.district).length;
+  $('district').replaceChildren(el('option', { value: '', textContent: 'All districts' }),
+    ...named.map(([value, textContent]) => el('option', { value, textContent })),
+    el('option', { value: NO_DISTRICT, textContent: `Not in a district (${none})` }));
+}
+
 function fillStates() {
   // Only offered once a country is chosen, and only if that country's teams
   // span more than one state/province. Always starts cleared.
@@ -205,6 +222,7 @@ async function load() {
     stat(active.filter((t) => t.firstSeen && Date.parse(t.firstSeen) > week).length, 'added in last 7 days'),
     stat(active.filter(isNew).length, last ? 'new since your last visit' : 'new in last 3 days'));
   fillSelect($('country'), counts(active, 'country'), 'All countries');
+  fillDistricts(active);
   fillStates();
   render();
 }
@@ -213,6 +231,7 @@ $('q').addEventListener('input', render);
 $('onlyNew').addEventListener('change', render);
 $('hideRemoved').addEventListener('change', render);
 $('state').addEventListener('change', render);
+$('district').addEventListener('change', render);
 $('country').addEventListener('change', () => { fillStates(); render(); });
 $('csv').addEventListener('click', csv);
 document.querySelectorAll('th[data-sort]').forEach((th) => th.addEventListener('click', () => {
