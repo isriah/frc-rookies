@@ -18,7 +18,8 @@
           "details": [
             "{school}",
             "{city}, {state}, {country}",
-            "Rookie year {rookieYear}"
+            "Rookie year {rookieYear}",
+            "Placed by {loc}"
           ],
           "link": "https://frc-events.firstinspires.org/{season}/team/{number}",
           "noun": "teams",
@@ -48,7 +49,16 @@
               "#fde725"
             ],
             "default": "flat"
-          }
+          },
+          "search": [
+            "number",
+            "name",
+            "school",
+            "city",
+            "state",
+            "country",
+            "rookieYear"
+          ]
         },
         {
           "name": "Removed / not in FIRST's list",

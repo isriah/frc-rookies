@@ -171,12 +171,15 @@ export async function renderMap({ mapEl, panelEl, noteEl, searchEl, countEl, con
       const layer = source.layers.find((l) => l.where && matches(item, l.where, source.file)) ?? source.layers.find((l) => !l.where);
       if (!layer) continue;
       if (!Number.isFinite(item.lat) || !Number.isFinite(item.lon)) { source.unplaced++; continue; }
-      // Items in the same city share coordinates; fan them out in a small
-      // spiral (about 1 km steps) so every dot can be seen and clicked.
+      // Items at the same point are fanned out in a small spiral so every
+      // dot can be seen and clicked.
       const spot = `${item.lat},${item.lon}`;
       const n = stacked.get(spot) ?? 0;
       stacked.set(spot, n + 1);
-      const r = clustered ? 0 : 0.009 * Math.sqrt(n), angle = n * 2.39996;
+      // The spread matches how exact the point is: teams known to share a
+      // school sit ~40 m apart, a shared postcode ~200 m, a shared city ~1 km.
+      const step = { school: 0.0004, exact: 0.0004, postcode: 0.002 }[item.loc] ?? 0.009;
+      const r = clustered ? 0 : step * Math.sqrt(n), angle = n * 2.39996;
       const lat = item.lat + r * Math.sin(angle);
       const lon = item.lon + (r * Math.cos(angle)) / Math.max(0.2, Math.cos((item.lat * Math.PI) / 180));
       const marker = makeMarker([lat, lon], source, source.colorOf(item, layer));

@@ -162,13 +162,17 @@ async function main() {
   const known = await readJson(new URL('../cache/team-locations.json', import.meta.url));
   const valid = (p) => p && Number.isFinite(p.lat) && Number.isFinite(p.lon);
   const locateTeam = async (t) => {
-    for (const p of [overrides[t.number], known[t.number]]) if (valid(p)) return { lat: p.lat, lon: p.lon };
-    return geo.locate(t);
+    // `loc` records how the point was found, so the map knows how exact it is.
+    if (valid(overrides[t.number])) return { lat: overrides[t.number].lat, lon: overrides[t.number].lon, loc: 'exact' };
+    if (valid(known[t.number])) return { lat: known[t.number].lat, lon: known[t.number].lon, loc: 'postcode' };
+    const city = await geo.locate(t);
+    return city ? { ...city, loc: 'city' } : city;
   };
   for (const t of snap.teams) {
     delete t.website;
     delete t.lat;
     delete t.lon;
+    delete t.loc;
     const point = await locateTeam(t);
     if (point) Object.assign(t, point);
   }
@@ -208,7 +212,7 @@ async function main() {
   for (const t of [...snap.teams.filter((x) => !x.removed), ...everyone]) {
     if (valid(overrides[t.number])) continue;
     const point = await geo.locateSchool(t, valid(t) ? { lat: t.lat, lon: t.lon } : null);
-    if (point) Object.assign(t, point);
+    if (point) Object.assign(t, point, { loc: 'school' });
   }
   await geo.save();
 
