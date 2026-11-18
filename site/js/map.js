@@ -25,7 +25,7 @@
 //            layer whose `where` matches. `where` maps field -> true/false
 //            (has a value / doesn't), a value, a list of allowed values, or a
 //            "{placeholder}" compared as text. A layer with no `where`
-//            catches everything left over.
+//            catches everything the others don't.
 //   color    dot colour when the source has no `layers`
 //   choose   show one group at a time, picked from a dropdown of the values
 //            found in a field: { field, default } (e.g. one season of events)
@@ -114,7 +114,8 @@ async function loadSource(cfg) {
     const wanted = fill(cfg.choose.default, null, source.file);
     source.choice = String(source.choices.find((v) => String(v) === wanted) ?? source.choices[0] ?? '');
   }
-  source.shows = (p) => !p.layer.hidden && (!cfg.choose || String(p.item[cfg.choose.field]) === source.choice);
+  source.chosen = (p) => !cfg.choose || String(p.item[cfg.choose.field]) === source.choice;
+  source.shows = (p) => !p.layer.hidden && source.chosen(p);
 
   const by = cfg.colorBy;
   if (by) {
@@ -166,7 +167,8 @@ export async function renderMap({ mapEl, panelEl, noteEl, searchEl, countEl, con
   const stacked = new Map();
   for (const source of sources) {
     for (const item of source.list) {
-      const layer = source.layers.find((l) => matches(item, l.where, source.file));
+      // A layer with no `where` catches whatever the others don't, wherever it is listed.
+      const layer = source.layers.find((l) => l.where && matches(item, l.where, source.file)) ?? source.layers.find((l) => !l.where);
       if (!layer) continue;
       if (!Number.isFinite(item.lat) || !Number.isFinite(item.lon)) { source.unplaced++; continue; }
       // Items in the same city share coordinates; fan them out in a small
@@ -213,8 +215,11 @@ export async function renderMap({ mapEl, panelEl, noteEl, searchEl, countEl, con
   panelEl.replaceChildren(...sources.map((source) => {
     const master = el('input', { type: 'checkbox', checked: source.on, disabled: Boolean(source.error) });
     const total = el('span', { className: 'count' });
-    const showTotal = () => { total.textContent = source.error ? `(${source.error})` : `(${source.points.filter(source.shows).length})`; };
-    showTotal();
+    const layerCounts = [];
+    const showTotal = () => {
+      total.textContent = source.error ? `(${source.error})` : `(${source.points.filter(source.shows).length})`;
+      for (const [layer, span] of layerCounts) span.textContent = `(${layer.points.filter(source.chosen).length})`;
+    };
     const head = el('label', { className: 'panel-head' }, master, source.name ?? source.noun, total);
     if (source.file.sample) head.append(el('span', { className: 'badge sample', textContent: 'SAMPLE DATA', title: 'Placeholder data for previewing; not real' }));
     const body = el('div', { className: 'panel-body' });
@@ -228,7 +233,9 @@ export async function renderMap({ mapEl, panelEl, noteEl, searchEl, countEl, con
       const swatch = el('span', { className: source.shape === 'diamond' ? 'swatch diamond' : 'swatch' });
       swatch.style.background = layer.color;
       swatches.push(swatch);
-      const row = el('label', {}, box, swatch, layer.name, el('span', { className: 'count', textContent: `(${layer.points.length})` }));
+      const count = el('span', { className: 'count' });
+      layerCounts.push([layer, count]);
+      const row = el('label', {}, box, swatch, layer.name, count);
       if (showLayers) body.append(row);
       else head.insertBefore(swatch, master.nextSibling);
     }
@@ -238,7 +245,7 @@ export async function renderMap({ mapEl, panelEl, noteEl, searchEl, countEl, con
       const pick = el('select', { ariaLabel: `${source.name ?? source.noun}: ${field}` },
         ...source.choices.map((v) => new Option(String(v), String(v), false, String(v) === source.choice)));
       pick.addEventListener('change', () => { source.choice = pick.value; showTotal(); refresh(); });
-      body.append(pick);
+      body.prepend(pick);
     }
 
     const by = source.colorBy;
@@ -258,6 +265,7 @@ export async function renderMap({ mapEl, panelEl, noteEl, searchEl, countEl, con
       apply();
     }
 
+    showTotal();
     const setOn = () => { source.on = master.checked; block.classList.toggle('off', !source.on); refresh(); };
     master.addEventListener('change', setOn);
     block.classList.toggle('off', !source.on);

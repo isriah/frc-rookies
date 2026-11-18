@@ -84,11 +84,26 @@
           ],
           "link": "https://frc-events.firstinspires.org/{season}/{code}",
           "noun": "events",
-          "color": "#6f42c1",
           "choose": {
             "field": "season",
             "default": "{season}"
-          }
+          },
+          "layers": [
+            {
+              "name": "Season events",
+              "color": "#6f42c1"
+            },
+            {
+              "name": "Off-season events",
+              "color": "#e83e8c",
+              "where": {
+                "type": [
+                  "OffSeason",
+                  "OffSeasonWithAzureSync"
+                ]
+              }
+            }
+          ]
         }
       ]
     }
