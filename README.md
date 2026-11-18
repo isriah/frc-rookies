@@ -12,6 +12,8 @@ number, name, sponsors, location and website. Unofficial; not affiliated with FI
   was first seen. Teams that disappear are kept and flagged as removed.
 - The workflow commits the data when it changes and deploys `site/` to GitHub Pages.
 - `site/feed.xml` is an Atom feed of newly seen teams.
+- `site/data/all-teams.json` holds every team this season (number, name, city,
+  rookie year, coordinates) for the all-teams map.
 - `scripts/events.mjs` records which events each rookie is registered for in
   `site/data/events.json`. It needs one request per event, so it runs every
   three hours (and on every manual run) rather than every 30 minutes.
@@ -66,7 +68,12 @@ the renderer. To add a map, add an entry to `maps` — no new code:
   "has a value / doesn't", otherwise an exact value or a list of allowed values.
 - Points are plain dots; add `"cluster": true` to a map to group nearby points
   into numbered clusters instead, and `"radius"` to change the dot size.
-- With more than one map, a picker appears on the map page.
+- To colour dots on a gradient by a number instead of by layer, add
+  `"colorBy": { "field": "rookieYear", "label": "Rookie year", "stops": ["#440154", "#fde725"] }`
+  (any number of colour stops, low to high; `min`/`max` are optional).
+- The search box matches every typed word against all of an item's text and
+  number fields; add `"search": ["number", "name"]` to limit which fields.
+- With more than one map, a picker appears on the map page (`name` is its label).
 - The base map comes from `tiles` at the top of `maps.json`.
 - A wrong pin can be fixed by editing that place's entry in `cache/geocode.json`.
 

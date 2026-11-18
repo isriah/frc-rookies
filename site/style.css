@@ -81,6 +81,8 @@ tr.removed td { color: var(--muted); }
 /* Map page */
 #map { height: calc(100vh - 250px); min-height: 420px; background: #dde7ee; }
 .legend { display: flex; flex-wrap: wrap; gap: 6px 20px; align-items: center; margin: 0 0 12px; }
+.legend .legend { margin: 0; }
+#count { margin-left: auto; font-weight: 600; color: var(--text); }
 .legend label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
 .swatch { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.35); display: inline-block; }
 .legend .count { color: var(--muted); }
@@ -89,3 +91,6 @@ tr.removed td { color: var(--muted); }
 .popup div { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
 .popup-list { max-height: 260px; overflow-y: auto; }
 .popup-list .popup + .popup { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+
+.scale { display: inline-flex; align-items: center; gap: 8px; font-variant-numeric: tabular-nums; }
+.gradient { display: inline-block; width: 160px; height: 12px; border-radius: 6px; border: 1px solid rgba(0,0,0,.35); }

@@ -15,6 +15,7 @@ import { refreshEvents, eventsFileExists } from './events.mjs';
 const API = process.env.FRC_API_BASE || 'https://frc-api.firstinspires.org/v3.0';
 const DATA_DIR = new URL('../site/data/', import.meta.url);
 const TEAMS_FILE = new URL('teams.json', DATA_DIR);
+const ALL_TEAMS_FILE = new URL('all-teams.json', DATA_DIR);
 const META_FILE = new URL('meta.json', DATA_DIR);
 const FEED_FILE = new URL('../site/feed.xml', import.meta.url);
 
@@ -150,6 +151,19 @@ async function main() {
     const point = await geo.locate(t);
     if (point) Object.assign(t, point);
   }
+
+  // Every team this season, for the all-teams map. Rookies were located
+  // first, so they get priority when the lookup budget is tight.
+  const everyone = [];
+  for (const t of all) {
+    if (!Number.isInteger(t.teamNumber)) continue;
+    const rec = { number: t.teamNumber, name: clean(t.nameShort), city: clean(t.city), state: clean(t.stateProv),
+      country: clean(t.country), rookieYear: Number.isInteger(t.rookieYear) ? t.rookieYear : null };
+    const point = await geo.locate(rec);
+    if (point) Object.assign(rec, point);
+    everyone.push(rec);
+  }
+  everyone.sort((a, b) => a.number - b.number);
   await geo.save();
 
   await mkdir(DATA_DIR, { recursive: true });
@@ -157,6 +171,13 @@ async function main() {
     await mkdir(new URL('archive/', DATA_DIR), { recursive: true });
     await writeFile(new URL(`archive/teams-${previous.season}.json`, DATA_DIR), stringify(previous));
   }
+  const allText = stringify({ season, heartbeat: now.slice(0, 7), teams: everyone });
+  let allPrevious = '';
+  try {
+    allPrevious = await readFile(ALL_TEAMS_FILE, 'utf8');
+  } catch {}
+  if (allPrevious !== allText) await writeFile(ALL_TEAMS_FILE, allText);
+
   const text = stringify(snap);
   const changed = !previous || stringify(previous) !== text;
   if (changed) await writeFile(TEAMS_FILE, text);
