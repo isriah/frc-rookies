@@ -4,11 +4,13 @@
 // Each team also gets lat/lon for the map (see geocode.mjs).
 //
 // Required env: FRC_API_USERNAME, FRC_API_TOKEN (free, https://frc-events.firstinspires.org/services/API)
-// Optional env: SEASON (e.g. 2027), FRC_API_BASE (for testing)
+// Optional env: SEASON (e.g. 2027), FRC_API_BASE (for testing),
+//   EVENTS=always|never (event registrations normally refresh every 3 hours)
 
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { openGeocoder } from './geocode.mjs';
+import { refreshEvents, eventsFileExists } from './events.mjs';
 
 const API = process.env.FRC_API_BASE || 'https://frc-api.firstinspires.org/v3.0';
 const DATA_DIR = new URL('../site/data/', import.meta.url);
@@ -160,6 +162,20 @@ async function main() {
   if (changed) await writeFile(TEAMS_FILE, text);
   await writeFile(META_FILE, JSON.stringify({ lastChecked: now, season, totalTeams: all.length }) + '\n');
   await writeFile(FEED_FILE, feed(snap, now));
+
+  // Event registrations take a few hundred requests, so only refresh them on
+  // the first run of every third hour, when missing, or when asked to.
+  const mode = process.env.EVENTS;
+  const due = nowDate.getUTCHours() % 3 === 0 && nowDate.getUTCMinutes() < 30;
+  if (mode !== 'never' && (mode === 'always' || due || !(await eventsFileExists()))) {
+    try {
+      const rookieNumbers = snap.teams.filter((t) => !t.removed).map((t) => t.number);
+      const r = await refreshEvents({ api: API, auth, season, rookieNumbers });
+      console.log(`Events: ${r.eventsChecked} checked, ${r.eventsWithRookies} with rookies, ${r.teamsRegistered} rookies registered`);
+    } catch (e) {
+      console.warn(`Event registrations not refreshed: ${e.message}`); // keep the previous file
+    }
+  }
 
   const active = snap.teams.filter((t) => !t.removed).length;
   console.log(`Season ${season}: ${all.length} teams, ${active} rookies, ${geo.lookups} places geocoded, data ${changed ? 'changed' : 'unchanged'}`);

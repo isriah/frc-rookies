@@ -13,7 +13,7 @@
   <div class="container">
     <span class="brand">FRC Rookie Teams<small>Unofficial</small></span>
     <span class="navlinks"><a href="./" aria-current="page">List</a><a href="map.html">Map</a></span>
-    <input type="search" id="q" placeholder="Team #, name, sponsor, city" aria-label="Search teams">
+    <input type="search" id="q" placeholder="Team #, name, city, event" aria-label="Search teams">
   </div>
 </nav>
 <main>
@@ -42,6 +42,7 @@
           <th data-sort="city">City</th>
           <th data-sort="state">State/Prov</th>
           <th data-sort="country" class="hide-sm">Country</th>
+          <th data-sort="eventCount">Events</th>
           <th data-sort="firstSeen">First seen</th>
         </tr>
       </thead>
@@ -86,7 +87,7 @@ function filtered() {
     words.every((w) => t._search.includes(w)));
   const cmp = (a, b) => {
     const x = a[sortKey], y = b[sortKey];
-    if (sortKey === 'number') return x - y;
+    if (typeof x === 'number' && typeof y === 'number') return x - y || a.number - b.number;
     if (!x !== !y) return x ? -1 : 1; // blanks last either direction
     return String(x ?? '').localeCompare(String(y ?? ''), undefined, { sensitivity: 'base' }) || a.number - b.number;
   };
@@ -94,6 +95,20 @@ function filtered() {
     if (sortKey !== 'number' && !a[sortKey] !== !b[sortKey]) return a[sortKey] ? -1 : 1;
     return sortDir * cmp(a, b);
   });
+}
+
+const shortDay = (iso) => new Date(iso + 'T00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+
+function eventsCell(t) {
+  const td = el('td', { className: 'events' });
+  for (const e of t.events) {
+    const when = e.start ? shortDay(e.start) : '';
+    const where = [e.city, e.state, e.country].filter(Boolean).join(', ');
+    td.append(el('div', { title: [e.name, where, e.start && e.end ? `${e.start} to ${e.end}` : ''].filter(Boolean).join(' · ') },
+      el('a', { href: `https://frc-events.firstinspires.org/${season}/${e.code}`, textContent: e.name || e.code, rel: 'noopener' }),
+      when ? el('span', { textContent: ' ' + when }) : ''));
+  }
+  return td;
 }
 
 function render() {
@@ -110,6 +125,7 @@ function render() {
       el('td', { textContent: t.city }),
       el('td', { textContent: t.state }),
       el('td', { textContent: t.country, className: 'hide-sm' }),
+      eventsCell(t),
       el('td', { className: 'seen', textContent: t.firstSeen ? fmtDate(t.firstSeen) : '—', title: t.firstSeen ? fmtDateTime(t.firstSeen) : 'Listed before tracking began' }));
     return tr;
   });
@@ -140,7 +156,7 @@ function fillStates() {
 }
 
 function csv() {
-  const cols = ['number', 'name', 'sponsors', 'school', 'city', 'state', 'country', 'district', 'firstSeen', 'removed'];
+  const cols = ['number', 'name', 'sponsors', 'school', 'city', 'state', 'country', 'district', 'eventCodes', 'firstSeen', 'removed'];
   const cell = (v) => {
     let s = String(v ?? '');
     if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; // stop spreadsheets treating names as formulas
@@ -153,19 +169,26 @@ function csv() {
 }
 
 async function load() {
-  let data, meta = null;
+  let data, meta = null, reg = null;
   try {
     const res = await fetch('data/teams.json', { cache: 'no-cache' });
     if (!res.ok) throw new Error(res.status);
     data = await res.json();
+    reg = await fetch('data/events.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
     meta = await fetch('data/meta.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
   } catch {
     $('status').textContent = 'Could not load team data.';
     return;
   }
   season = data.season;
-  teams = data.teams.map((t) => ({ ...t,
-    _search: [t.number, t.name, t.sponsors, t.school, t.city, t.state, t.country, t.district].join(' ').toLowerCase() }));
+  const sameSeason = reg && reg.season === season;
+  teams = data.teams.map((t) => {
+    const codes = (sameSeason && !t.removed && reg.teams[t.number]) || [];
+    const events = codes.filter((c) => reg.events[c]).map((c) => ({ code: c, ...reg.events[c] }));
+    return { ...t, events, eventCount: events.length, eventCodes: codes.join(' '),
+      _search: [t.number, t.name, t.sponsors, t.school, t.city, t.state, t.country, t.district,
+        ...events.flatMap((e) => [e.code, e.name])].join(' ').toLowerCase() };
+  });
 
   // "New" = first seen since your previous visit, or in the last 3 days on a first visit.
   let last = 0;
@@ -180,6 +203,7 @@ async function load() {
   $('stats').replaceChildren(
     stat(active.length, 'rookie teams'),
     stat(new Set(active.map((t) => t.country).filter(Boolean)).size, 'countries'),
+    stat(active.filter((t) => t.eventCount).length, 'registered for an event'),
     stat(active.filter((t) => t.firstSeen && Date.parse(t.firstSeen) > week).length, 'added in last 7 days'),
     stat(active.filter(isNew).length, last ? 'new since your last visit' : 'new in last 3 days'));
   fillSelect($('country'), counts(active, 'country'), 'All countries');
@@ -195,7 +219,7 @@ $('country').addEventListener('change', () => { fillStates(); render(); });
 $('csv').addEventListener('click', csv);
 document.querySelectorAll('th[data-sort]').forEach((th) => th.addEventListener('click', () => {
   if (sortKey === th.dataset.sort) sortDir = -sortDir;
-  else { sortKey = th.dataset.sort; sortDir = sortKey === 'firstSeen' ? -1 : 1; }
+  else { sortKey = th.dataset.sort; sortDir = sortKey === 'firstSeen' || sortKey === 'eventCount' ? -1 : 1; }
   render();
 }));
 load();

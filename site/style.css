@@ -54,6 +54,9 @@ td.name { min-width: 150px; max-width: 380px; overflow: hidden; }
 .nameline { display: flex; align-items: flex-start; gap: 8px; }
 .name b { font-weight: 400; overflow-wrap: anywhere; flex: 1; min-width: 0; }
 .sponsors { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; max-height: 3em; overflow: hidden; }
+td.events { font-size: 13px; min-width: 170px; max-width: 260px; }
+td.events div + div { margin-top: 3px; }
+td.events span { color: var(--muted); white-space: nowrap; }
 td.seen { white-space: nowrap; }
 .badge { display: inline-block; font-size: 12px; font-weight: 700; line-height: 1; border-radius: 6px; padding: 4px 8px; flex: none; margin-top: 4px; color: #fff; }
 .badge.new { background: #198754; }

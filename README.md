@@ -12,6 +12,9 @@ number, name, sponsors, location and website. Unofficial; not affiliated with FI
   was first seen. Teams that disappear are kept and flagged as removed.
 - The workflow commits the data when it changes and deploys `site/` to GitHub Pages.
 - `site/feed.xml` is an Atom feed of newly seen teams.
+- `scripts/events.mjs` records which events each rookie is registered for in
+  `site/data/events.json`. It needs one request per event, so it runs every
+  three hours (and on every manual run) rather than every 30 minutes.
 - Each team's city is turned into map coordinates by `scripts/geocode.mjs`
   (OpenStreetMap's Nominatim). Results are cached in `cache/geocode.json`, so a
   place is only looked up once; at most 60 new places are looked up per run.
@@ -61,6 +64,8 @@ the renderer. To add a map, add an entry to `maps` — no new code:
 - `{placeholders}` read from the item, then from top-level values in the data file.
 - An item goes in the first layer whose `where` matches: `true`/`false` means
   "has a value / doesn't", otherwise an exact value or a list of allowed values.
+- Points are plain dots; add `"cluster": true` to a map to group nearby points
+  into numbered clusters instead, and `"radius"` to change the dot size.
 - With more than one map, a picker appears on the map page.
 - The base map comes from `tiles` at the top of `maps.json`.
 - A wrong pin can be fixed by editing that place's entry in `cache/geocode.json`.

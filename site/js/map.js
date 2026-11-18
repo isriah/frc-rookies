@@ -10,6 +10,8 @@
 //   details  popup lines (templates); empty lines are dropped
 //   link     optional URL template for the popup heading
 //   noun     what the points are called, e.g. "teams"
+//   cluster  true to group nearby points into numbered clusters (default: plain dots)
+//   radius   dot size in pixels (default 5)
 //   layers   [{ name, color, where, hidden }] — each item goes in the first
 //            layer whose `where` matches. `where` maps field -> true/false
 //            (has a value / doesn't), a value, or a list of allowed values.
@@ -18,7 +20,7 @@
 // and reported but not drawn. {placeholders} read from the item first, then
 // from top-level values in the data file (such as `season`).
 //
-// Requires Leaflet and Leaflet.markercluster to be loaded as globals.
+// Requires Leaflet as a global; Leaflet.markercluster only if a map sets "cluster".
 
 const fill = (template, item, file) =>
   String(template ?? '')
@@ -65,15 +67,26 @@ export async function renderMap({ mapEl, legendEl, noteEl, config, tiles }) {
 
   const map = L.map(mapEl, { worldCopyJump: true, preferCanvas: true }).setView([25, 0], 2);
   L.tileLayer(tiles.url, { attribution: tiles.attribution, maxZoom: tiles.maxZoom ?? 18 }).addTo(map);
-  const cluster = L.markerClusterGroup({ maxClusterRadius: 40, showCoverageOnHover: false }).addTo(map);
+  // Plain dots by default; "cluster": true groups nearby points into counts.
+  const clustered = config.cluster && typeof L.markerClusterGroup === 'function';
+  const group = (clustered ? L.markerClusterGroup({ maxClusterRadius: 40, showCoverageOnHover: false }) : L.layerGroup()).addTo(map);
 
   const layers = (config.layers ?? [{ name: config.noun ?? 'Items', color: '#0d6efd' }]).map((l) => ({ ...l, markers: [], unplaced: 0 }));
+  const stacked = new Map();
   for (const item of items) {
     const layer = layers.find((l) => matches(item, l.where));
     if (!layer) continue;
     if (!Number.isFinite(item.lat) || !Number.isFinite(item.lon)) { layer.unplaced++; continue; }
-    const marker = L.circleMarker([item.lat, item.lon], {
-      radius: 7, color: '#fff', weight: 2, fillColor: layer.color, fillOpacity: 0.9,
+    // Items in the same city share coordinates; fan them out in a small
+    // spiral (about 1 km steps) so every dot can be seen and clicked.
+    const spot = `${item.lat},${item.lon}`;
+    const n = stacked.get(spot) ?? 0;
+    stacked.set(spot, n + 1);
+    const r = clustered ? 0 : 0.009 * Math.sqrt(n), angle = n * 2.39996;
+    const lat = item.lat + r * Math.sin(angle);
+    const lon = item.lon + (r * Math.cos(angle)) / Math.max(0.2, Math.cos((item.lat * Math.PI) / 180));
+    const marker = L.circleMarker([lat, lon], {
+      radius: config.radius ?? 5, color: '#fff', weight: 1.5, fillColor: layer.color, fillOpacity: 0.9,
     });
     marker.bindPopup(() => popupFor(item, config, file), { maxWidth: 280 });
     marker.bindTooltip(fill(config.label, item, file));
@@ -82,9 +95,9 @@ export async function renderMap({ mapEl, legendEl, noteEl, config, tiles }) {
 
   const noun = config.noun ?? 'items';
   function refresh() {
-    cluster.clearLayers();
+    group.clearLayers();
     const shown = layers.filter((l) => !l.hidden);
-    cluster.addLayers(shown.flatMap((l) => l.markers));
+    for (const marker of shown.flatMap((l) => l.markers)) group.addLayer(marker);
     const unplaced = shown.reduce((n, l) => n + l.unplaced, 0);
     noteEl.textContent = unplaced
       ? `${unplaced} ${noun} are not shown because their location could not be placed on the map.`
