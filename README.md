@@ -76,6 +76,11 @@ the renderer. To add a map, add an entry to `maps` — no new code:
   (any number of colour stops, low to high; `min`/`max` are optional).
 - The search box matches every typed word against all of an item's text and
   number fields; add `"search": ["number", "name"]` to limit which fields.
+- A map can draw several datasets at once: give it a `sources` list, each with
+  its own `data`, `layers`, popup templates and optional `shape` (`"diamond"`).
+  The panel beside the map gets a block per dataset to switch it, its layers
+  and its colouring on and off. See the `everything` map and the notes at the
+  top of `site/js/map.js`.
 - With more than one map, a picker appears on the map page (`name` is its label).
 - The base map comes from `tiles` at the top of `maps.json`.
 - A wrong pin can be fixed by editing that place's entry in `cache/geocode.json`.
