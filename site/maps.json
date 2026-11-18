@@ -1,0 +1,23 @@
+{
+  "tiles": {
+    "url": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    "attribution": "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors",
+    "maxZoom": 18
+  },
+  "maps": [
+    {
+      "id": "rookies",
+      "title": "{season} FRC Rookie Teams",
+      "data": "data/teams.json",
+      "items": "teams",
+      "label": "{number} {name}",
+      "details": ["{city}, {state}, {country}", "{sponsors}"],
+      "link": "https://frc-events.firstinspires.org/{season}/team/{number}",
+      "noun": "teams",
+      "layers": [
+        { "name": "Rookie teams", "color": "#0d6efd", "where": { "removed": false } },
+        { "name": "Removed / not in FIRST's list", "color": "#dc3545", "where": { "removed": true }, "hidden": true }
+      ]
+    }
+  ]
+}

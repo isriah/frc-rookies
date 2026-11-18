@@ -12,6 +12,9 @@ number, name, sponsors, location and website. Unofficial; not affiliated with FI
   was first seen. Teams that disappear are kept and flagged as removed.
 - The workflow commits the data when it changes and deploys `site/` to GitHub Pages.
 - `site/feed.xml` is an Atom feed of newly seen teams.
+- Each team's city is turned into map coordinates by `scripts/geocode.mjs`
+  (OpenStreetMap's Nominatim). Results are cached in `cache/geocode.json`, so a
+  place is only looked up once; at most 60 new places are looked up per run.
 
 ## Setup
 
@@ -30,6 +33,37 @@ it, add a repository variable named `SEASON`, e.g. `2027`.
 FRC_API_USERNAME=... FRC_API_TOKEN=... node scripts/update.mjs
 python -m http.server -d site 8000
 ```
+
+## Maps
+
+`site/map.html` draws whatever `site/maps.json` describes; `site/js/map.js` is
+the renderer. To add a map, add an entry to `maps` — no new code:
+
+```json
+{
+  "id": "rookies",                      // map.html?map=rookies
+  "title": "{season} FRC Rookie Teams",
+  "data": "data/teams.json",            // any JSON file
+  "items": "teams",                     // the array inside it
+  "label": "{number} {name}",           // popup heading
+  "details": ["{city}, {state}, {country}", "{sponsors}"],
+  "link": "https://frc-events.firstinspires.org/{season}/team/{number}",
+  "noun": "teams",
+  "layers": [
+    { "name": "Rookie teams", "color": "#0d6efd", "where": { "removed": false } },
+    { "name": "Removed", "color": "#dc3545", "where": { "removed": true }, "hidden": true }
+  ]
+}
+```
+
+- Every item needs numeric `lat` and `lon`. A script producing a new data file
+  can get them from `openGeocoder()` in `scripts/geocode.mjs`.
+- `{placeholders}` read from the item, then from top-level values in the data file.
+- An item goes in the first layer whose `where` matches: `true`/`false` means
+  "has a value / doesn't", otherwise an exact value or a list of allowed values.
+- With more than one map, a picker appears on the map page.
+- The base map comes from `tiles` at the top of `maps.json`.
+- A wrong pin can be fixed by editing that place's entry in `cache/geocode.json`.
 
 ## Notes
 

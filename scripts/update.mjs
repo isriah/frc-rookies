@@ -1,11 +1,14 @@
 // Fetches the season's rookie teams from the FRC Events API and merges them
 // into site/data/teams.json, keeping the date each team was first seen.
 //
+// Each team also gets lat/lon for the map (see geocode.mjs).
+//
 // Required env: FRC_API_USERNAME, FRC_API_TOKEN (free, https://frc-events.firstinspires.org/services/API)
 // Optional env: SEASON (e.g. 2027), FRC_API_BASE (for testing)
 
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
+import { openGeocoder } from './geocode.mjs';
 
 const API = process.env.FRC_API_BASE || 'https://frc-api.firstinspires.org/v3.0';
 const DATA_DIR = new URL('../site/data/', import.meta.url);
@@ -17,18 +20,6 @@ class SeasonUnavailable extends Error {}
 
 // Names are kept as FIRST publishes them; only whitespace is tidied.
 const clean = (s) => (s ?? '').toString().replace(/\s+/g, ' ').trim();
-
-function cleanUrl(raw) {
-  let u = clean(raw);
-  if (!u) return '';
-  if (!/^[a-z][a-z0-9+.-]*:/i.test(u)) u = 'https://' + u;
-  try {
-    const p = new URL(u);
-    return /^https?:$/.test(p.protocol) && p.hostname.includes('.') ? p.href : '';
-  } catch {
-    return '';
-  }
-}
 
 async function fetchSeason(season, auth) {
   const teams = [];
@@ -58,7 +49,6 @@ const toRecord = (t) => ({
   state: clean(t.stateProv),
   country: clean(t.country),
   district: clean(t.districtCode),
-  website: cleanUrl(t.website),
 });
 
 export function merge(previous, rookies, season, now) {
@@ -69,8 +59,7 @@ export function merge(previous, rookies, season, now) {
   const out = new Map();
   for (const r of rookies) {
     const prev = old.get(r.number);
-    // The API often has no website; keep one we already know about.
-    out.set(r.number, { ...r, website: r.website || prev?.website || '', firstSeen: prev ? prev.firstSeen : baseline ? null : now });
+    out.set(r.number, { ...r, firstSeen: prev ? prev.firstSeen : baseline ? null : now });
   }
   // Keep teams that vanished from the API, flagged, so the list is a record.
   for (const [number, prev] of old) {
@@ -104,7 +93,7 @@ function feed(snap, now) {
     <title>${xml(`${t.number} ${t.name}`)} — ${xml(where)}</title>
     <updated>${t.firstSeen}</updated>
     <link href="https://frc-events.firstinspires.org/${snap.season}/team/${t.number}"/>
-    <summary>${xml([t.sponsors, t.website].filter(Boolean).join(' · '))}</summary>
+    <summary>${xml(t.sponsors)}</summary>
   </entry>`;
   });
   return `<?xml version="1.0" encoding="utf-8"?>
@@ -146,9 +135,20 @@ async function main() {
   }
   if (all.length === 0) throw new Error('FRC API returned no teams; refusing to update');
 
-  console.log(`API team fields: ${Object.keys(all[0]).join(', ')}; with website: ${all.filter((t) => t.website).length}`);
   const rookies = all.filter((t) => t.rookieYear === season && Number.isInteger(t.teamNumber)).map(toRecord);
   const snap = merge(previous, rookies, season, now);
+
+  // Add map coordinates. Places not yet in the cache are looked up a few at a
+  // time; teams still waiting simply have no lat/lon until a later run.
+  const geo = await openGeocoder({ maxLookups: Number(process.env.GEOCODE_MAX) || 60 });
+  for (const t of snap.teams) {
+    delete t.website;
+    delete t.lat;
+    delete t.lon;
+    const point = await geo.locate(t);
+    if (point) Object.assign(t, point);
+  }
+  await geo.save();
 
   await mkdir(DATA_DIR, { recursive: true });
   if (previous && previous.season !== season) {
@@ -162,7 +162,7 @@ async function main() {
   await writeFile(FEED_FILE, feed(snap, now));
 
   const active = snap.teams.filter((t) => !t.removed).length;
-  console.log(`Season ${season}: ${all.length} teams, ${active} rookies, data ${changed ? 'changed' : 'unchanged'}`);
+  console.log(`Season ${season}: ${all.length} teams, ${active} rookies, ${geo.lookups} places geocoded, data ${changed ? 'changed' : 'unchanged'}`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

@@ -39,7 +39,7 @@ jobs:
 
       - name: Commit data changes
         run: |
-          git add site/data
+          git add site/data cache
           if git diff --cached --quiet; then
             echo "No data changes"
           else

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FRC Rookie Map</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="color-strip"><i></i><i></i><i></i></div>
+<nav>
+  <div class="container">
+    <span class="brand">FRC Rookie Teams<small>Unofficial</small></span>
+    <span class="navlinks"><a href="./">List</a><a href="map.html" aria-current="page">Map</a></span>
+  </div>
+</nav>
+<main>
+<div class="container sheet">
+  <div class="titlebar">
+    <h1 id="title">Map</h1>
+    <select id="picker" aria-label="Choose a map" hidden></select>
+  </div>
+  <div class="content">
+    <div class="legend" id="legend"></div>
+    <div id="map"></div>
+    <p class="note" id="note"></p>
+  </div>
+</div>
+</main>
+<div class="footer-box">
+  <div class="container">
+    <p>Locations are city-level, placed with OpenStreetMap data from each team's listed city. Teams in the same city share a spot; click a cluster to spread them out.</p>
+    <p>This is not an official <i>FIRST</i> site and is not affiliated with <i>FIRST</i>.</p>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
+<script type="module">
+import { renderMap } from './js/map.js';
+
+const $ = (id) => document.getElementById(id);
+try {
+  const { maps, tiles } = await fetch('maps.json', { cache: 'no-cache' }).then((r) => r.json());
+  const wanted = new URLSearchParams(location.search).get('map');
+  const config = maps.find((m) => m.id === wanted) ?? maps[0];
+
+  if (maps.length > 1) {
+    const picker = $('picker');
+    picker.hidden = false;
+    for (const m of maps) picker.append(new Option(m.name ?? m.id, m.id, false, m === config));
+    picker.addEventListener('change', () => { location.search = '?map=' + encodeURIComponent(picker.value); });
+  }
+
+  const { title } = await renderMap({ mapEl: $('map'), legendEl: $('legend'), noteEl: $('note'), config, tiles });
+  document.title = $('title').textContent = title + ' — Map';
+} catch (e) {
+  $('note').textContent = 'Could not load the map: ' + e.message;
+}
+</script>
+</body>
+</html>
