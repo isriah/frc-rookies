@@ -34,7 +34,7 @@
     flex: 0 1 280px; min-width: 0;
   }
   main { flex: 1; }
-  .sheet { padding: 0; box-shadow: -12px -16px 28px 0 rgba(0,0,0,.6), 12px -16px 28px 0 rgba(0,0,0,.6); background: #fff; min-height: 100%; }
+  .sheet { padding: 0; box-shadow: 0 0 28px rgba(0,0,0,.6); clip-path: inset(0 -40px); background: #fff; min-height: 100%; }
   .titlebar { background: var(--bar); padding: 8px 12px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; }
   h1 { margin: 0; font-size: 24px; font-weight: 500; line-height: 1.2; padding: 8px 0; }
   .sub { color: var(--muted); margin: 0; font-size: 14px; }
@@ -98,6 +98,7 @@
     <select id="country" aria-label="Country"><option value="">All countries</option></select>
     <select id="state" aria-label="State or province"><option value="">All states/provinces</option></select>
     <label class="chk"><input type="checkbox" id="onlyNew"> New only</label>
+    <label class="chk"><input type="checkbox" id="hideRemoved"> Hide removed</label>
     <button id="csv" type="button">Download CSV</button>
   </div>
 
@@ -132,7 +133,7 @@
 <script>
 const $ = (id) => document.getElementById(id);
 const VISIT_KEY = 'frc-rookies-last-visit';
-let teams = [], season = '', sortKey = 'number', sortDir = -1, newSince = 0;
+let teams = [], season = '', sortKey = 'number', sortDir = 1, newSince = 0;
 
 function el(tag, props = {}, ...kids) {
   const e = Object.assign(document.createElement(tag), props);
@@ -146,11 +147,12 @@ const isNew = (t) => !t.removed && t.firstSeen && Date.parse(t.firstSeen) > newS
 
 function filtered() {
   const words = $('q').value.toLowerCase().split(/\s+/).filter(Boolean);
-  const country = $('country').value, state = $('state').value, onlyNew = $('onlyNew').checked;
+  const country = $('country').value, state = $('state').value, onlyNew = $('onlyNew').checked, hideRemoved = $('hideRemoved').checked;
   const list = teams.filter((t) =>
     (!country || t.country === country) &&
     (!state || t.state === state) &&
     (!onlyNew || isNew(t)) &&
+    (!hideRemoved || !t.removed) &&
     words.every((w) => t._search.includes(w)));
   const cmp = (a, b) => {
     const x = a[sortKey], y = b[sortKey];
@@ -169,7 +171,7 @@ function render() {
   const rows = list.map((t) => {
     const nameCell = el('td', { className: 'name' }, el('b', { textContent: t.name || '(unnamed)' }));
     if (isNew(t)) nameCell.append(el('span', { className: 'badge new', textContent: 'NEW' }));
-    if (t.removed) nameCell.append(el('span', { className: 'badge gone', textContent: 'REMOVED', title: 'No longer listed since ' + fmtDate(t.removed) }));
+    if (t.removed) nameCell.append(el('span', { className: 'badge gone', textContent: 'REMOVED', title: t.note || 'No longer listed since ' + fmtDate(t.removed) }));
     if (t.sponsors && t.sponsors !== t.name) nameCell.append(el('div', { className: 'sponsors', textContent: t.sponsors, title: t.sponsors }));
     const site = el('td');
     if (t.website) site.append(el('a', { href: t.website, textContent: 'Link', rel: 'noopener noreferrer nofollow', target: '_blank' }));
@@ -259,6 +261,7 @@ async function load() {
 
 $('q').addEventListener('input', render);
 $('onlyNew').addEventListener('change', render);
+$('hideRemoved').addEventListener('change', render);
 $('state').addEventListener('change', render);
 $('country').addEventListener('change', () => { fillStates(); render(); });
 $('csv').addEventListener('click', csv);

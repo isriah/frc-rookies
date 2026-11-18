@@ -69,7 +69,8 @@ export function merge(previous, rookies, season, now) {
   const out = new Map();
   for (const r of rookies) {
     const prev = old.get(r.number);
-    out.set(r.number, { ...r, firstSeen: prev ? prev.firstSeen : baseline ? null : now });
+    // The API often has no website; keep one we already know about.
+    out.set(r.number, { ...r, website: r.website || prev?.website || '', firstSeen: prev ? prev.firstSeen : baseline ? null : now });
   }
   // Keep teams that vanished from the API, flagged, so the list is a record.
   for (const [number, prev] of old) {
@@ -145,6 +146,7 @@ async function main() {
   }
   if (all.length === 0) throw new Error('FRC API returned no teams; refusing to update');
 
+  console.log(`API team fields: ${Object.keys(all[0]).join(', ')}; with website: ${all.filter((t) => t.website).length}`);
   const rookies = all.filter((t) => t.rookieYear === season && Number.isInteger(t.teamNumber)).map(toRecord);
   const snap = merge(previous, rookies, season, now);
 
