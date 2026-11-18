@@ -59,34 +59,24 @@ export async function fetchEventList({ api, auth, season }) {
   return list;
 }
 
-// Merges two seasons' event lists into one entry per event code, marked
-// "both", "new" (this season only) or "previous" (last season only). Details
-// come from the newest season the event appears in. Events are matched by
-// code; codes occasionally change between years, so a renamed event can show
-// up as one "previous" plus one "new".
-export function compareSeasons(season, current, previous) {
-  const record = (e, eventSeason, status) => ({
-    code: e.code,
-    name: clean(e.name),
-    type: clean(e.type),
-    city: clean(e.city),
-    state: clean(e.stateprov ?? e.stateProv),
-    country: clean(e.country),
-    venue: clean(e.venue),
-    start: day(e.dateStart),
-    end: day(e.dateEnd),
-    eventSeason,
-    status,
-  });
-  const before = new Map(previous.filter((e) => e.code).map((e) => [e.code, e]));
-  const out = [];
-  for (const e of current) {
-    if (!e.code) continue;
-    out.push(record(e, season, before.has(e.code) ? 'both' : 'new'));
-    before.delete(e.code);
-  }
-  for (const e of before.values()) out.push(record(e, season - 1, 'previous'));
-  return out.sort((a, b) => a.code.localeCompare(b.code));
+// One season's event list as map records, each tagged with its season so the
+// map can switch between years.
+export function eventRecords(season, list) {
+  return list
+    .filter((e) => e.code)
+    .map((e) => ({
+      season,
+      code: e.code,
+      name: clean(e.name),
+      type: clean(e.type),
+      city: clean(e.city),
+      state: clean(e.stateprov ?? e.stateProv),
+      country: clean(e.country),
+      venue: clean(e.venue),
+      start: day(e.dateStart),
+      end: day(e.dateEnd),
+    }))
+    .sort((a, b) => a.code.localeCompare(b.code));
 }
 
 export async function refreshEvents({ api, auth, season, rookieNumbers }) {

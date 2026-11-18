@@ -82,31 +82,13 @@
             "{city}, {state}, {country}",
             "{start} to {end}"
           ],
-          "link": "https://frc-events.firstinspires.org/{eventSeason}/{code}",
+          "link": "https://frc-events.firstinspires.org/{season}/{code}",
           "noun": "events",
-          "layers": [
-            {
-              "name": "In both seasons",
-              "color": "#6f42c1",
-              "where": {
-                "status": "both"
-              }
-            },
-            {
-              "name": "New in {season}",
-              "color": "#198754",
-              "where": {
-                "status": "new"
-              }
-            },
-            {
-              "name": "{previousSeason} only",
-              "color": "#dc3545",
-              "where": {
-                "status": "previous"
-              }
-            }
-          ]
+          "color": "#6f42c1",
+          "choose": {
+            "field": "season",
+            "default": "{season}"
+          }
         }
       ]
     }

@@ -10,7 +10,10 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { openGeocoder } from './geocode.mjs';
-import { refreshEvents, eventsFileExists, fetchEventList, compareSeasons } from './events.mjs';
+import { refreshEvents, eventsFileExists, fetchEventList, eventRecords } from './events.mjs';
+
+// How many seasons of event locations to keep for the map's year dropdown.
+const EVENT_SEASONS = 2;
 
 const API = process.env.FRC_API_BASE || 'https://frc-api.firstinspires.org/v3.0';
 const DATA_DIR = new URL('../site/data/', import.meta.url);
@@ -166,15 +169,14 @@ async function main() {
   }
   everyone.sort((a, b) => a.number - b.number);
 
-  // Event locations for this season and the last one, for the events map.
-  // Two requests; if either fails the previous file is left as it is.
+  // Event locations for each season in EVENT_SEASONS, newest first, so the map
+  // can switch between years. One request per season; if any fails the
+  // previous file is left as it is.
   let eventPlaces = null;
+  const eventSeasons = Array.from({ length: EVENT_SEASONS }, (_, i) => season - i);
   try {
-    const [current, before] = await Promise.all([
-      fetchEventList({ api: API, auth, season }),
-      fetchEventList({ api: API, auth, season: season - 1 }),
-    ]);
-    eventPlaces = compareSeasons(season, current, before);
+    const lists = await Promise.all(eventSeasons.map((s) => fetchEventList({ api: API, auth, season: s })));
+    eventPlaces = lists.flatMap((list, i) => eventRecords(eventSeasons[i], list));
     for (const e of eventPlaces) {
       const point = await geo.locate(e);
       if (point) Object.assign(e, point);
@@ -197,15 +199,15 @@ async function main() {
   if (allPrevious !== allText) await writeFile(ALL_TEAMS_FILE, allText);
 
   if (eventPlaces) {
-    const head = `"season": ${season},\n"previousSeason": ${season - 1},\n"events": [\n`;
+    const head = `"season": ${season},\n"events": [\n`;
     const placesText = `{\n${head}${eventPlaces.map((e) => JSON.stringify(e)).join(',\n')}\n]\n}\n`;
     let placesPrevious = '';
     try {
       placesPrevious = await readFile(EVENT_PLACES_FILE, 'utf8');
     } catch {}
     if (placesPrevious !== placesText) await writeFile(EVENT_PLACES_FILE, placesText);
-    const count = (s) => eventPlaces.filter((e) => e.status === s).length;
-    console.log(`Event locations: ${count('both')} in both seasons, ${count('new')} new in ${season}, ${count('previous')} only in ${season - 1}`);
+    const count = (s) => eventPlaces.filter((e) => e.season === s).length;
+    console.log(`Event locations: ${eventSeasons.map((s) => `${count(s)} in ${s}`).join(', ')}`);
   }
 
   const text = stringify(snap);

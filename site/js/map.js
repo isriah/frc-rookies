@@ -26,6 +26,9 @@
 //            (has a value / doesn't), a value, a list of allowed values, or a
 //            "{placeholder}" compared as text. A layer with no `where`
 //            catches everything left over.
+//   color    dot colour when the source has no `layers`
+//   choose   show one group at a time, picked from a dropdown of the values
+//            found in a field: { field, default } (e.g. one season of events)
 //   colorBy  optional gradient colouring by a numeric field, switchable in
 //            the panel: { field, label, stops: [colours low -> high], min,
 //            max, default: "gradient" | "flat" }
@@ -103,7 +106,15 @@ async function loadSource(cfg) {
   }
   source.noun = cfg.noun ?? 'items';
   source.layers = (cfg.layers ?? [{ name: cfg.name ?? source.noun }])
-    .map((l) => ({ ...l, color: l.color ?? DEFAULT_COLOR, name: fill(l.name, null, source.file), points: [] }));
+    .map((l) => ({ ...l, color: l.color ?? cfg.color ?? DEFAULT_COLOR, name: fill(l.name, null, source.file), points: [] }));
+
+  if (cfg.choose) {
+    const values = [...new Set(source.list.map((it) => it[cfg.choose.field]).filter((v) => v != null))];
+    source.choices = values.sort((a, b) => (a < b ? 1 : -1)); // newest / highest first
+    const wanted = fill(cfg.choose.default, null, source.file);
+    source.choice = String(source.choices.find((v) => String(v) === wanted) ?? source.choices[0] ?? '');
+  }
+  source.shows = (p) => !p.layer.hidden && (!cfg.choose || String(p.item[cfg.choose.field]) === source.choice);
 
   const by = cfg.colorBy;
   if (by) {
@@ -182,7 +193,7 @@ export async function renderMap({ mapEl, panelEl, noteEl, searchEl, countEl, con
   let words = [], matched = [];
   function refresh() {
     group.clearLayers();
-    const candidates = sources.filter((s) => s.on).flatMap((s) => s.points.filter((p) => !p.layer.hidden));
+    const candidates = sources.filter((s) => s.on).flatMap((s) => s.points.filter(s.shows));
     matched = candidates.filter((p) => words.every((w) => p.haystack.includes(w)));
     for (const p of matched) group.addLayer(p.marker);
     if (countEl) countEl.textContent = words.length ? `${matched.length} of ${candidates.length} shown match` : '';
@@ -201,8 +212,10 @@ export async function renderMap({ mapEl, panelEl, noteEl, searchEl, countEl, con
   // Control panel: one block per dataset, with its layers and colour choice.
   panelEl.replaceChildren(...sources.map((source) => {
     const master = el('input', { type: 'checkbox', checked: source.on, disabled: Boolean(source.error) });
-    const head = el('label', { className: 'panel-head' }, master, source.name ?? source.noun,
-      el('span', { className: 'count', textContent: source.error ? `(${source.error})` : `(${source.points.length})` }));
+    const total = el('span', { className: 'count' });
+    const showTotal = () => { total.textContent = source.error ? `(${source.error})` : `(${source.points.filter(source.shows).length})`; };
+    showTotal();
+    const head = el('label', { className: 'panel-head' }, master, source.name ?? source.noun, total);
     if (source.file.sample) head.append(el('span', { className: 'badge sample', textContent: 'SAMPLE DATA', title: 'Placeholder data for previewing; not real' }));
     const body = el('div', { className: 'panel-body' });
     const block = el('section', { className: 'panel-block' }, head, body);
@@ -211,13 +224,21 @@ export async function renderMap({ mapEl, panelEl, noteEl, searchEl, countEl, con
     const showLayers = source.layers.length > 1 || source.layers[0].name !== (source.name ?? source.noun);
     for (const layer of source.layers) {
       const box = el('input', { type: 'checkbox', checked: !layer.hidden });
-      box.addEventListener('change', () => { layer.hidden = !box.checked; refresh(); });
+      box.addEventListener('change', () => { layer.hidden = !box.checked; showTotal(); refresh(); });
       const swatch = el('span', { className: source.shape === 'diamond' ? 'swatch diamond' : 'swatch' });
       swatch.style.background = layer.color;
       swatches.push(swatch);
       const row = el('label', {}, box, swatch, layer.name, el('span', { className: 'count', textContent: `(${layer.points.length})` }));
       if (showLayers) body.append(row);
       else head.insertBefore(swatch, master.nextSibling);
+    }
+
+    if (source.choices?.length) {
+      const field = source.choose.field;
+      const pick = el('select', { ariaLabel: `${source.name ?? source.noun}: ${field}` },
+        ...source.choices.map((v) => new Option(String(v), String(v), false, String(v) === source.choice)));
+      pick.addEventListener('change', () => { source.choice = pick.value; showTotal(); refresh(); });
+      body.append(pick);
     }
 
     const by = source.colorBy;
