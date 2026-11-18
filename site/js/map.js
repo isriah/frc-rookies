@@ -85,7 +85,8 @@ export async function renderMap({ mapEl, legendEl, noteEl, searchEl, countEl, co
   const clustered = config.cluster && typeof L.markerClusterGroup === 'function';
   const group = (clustered ? L.markerClusterGroup({ maxClusterRadius: 40, showCoverageOnHover: false }) : L.layerGroup()).addTo(map);
 
-  const layers = (config.layers ?? [{ name: config.noun ?? 'Items', color: '#0d6efd' }]).map((l) => ({ ...l, markers: [], unplaced: 0 }));
+  const layers = (config.layers ?? [{ name: config.noun ?? 'Items', color: '#0d6efd' }])
+    .map((l) => ({ ...l, name: fill(l.name, null, file), markers: [], unplaced: 0 })); // names may use {season} etc.
   const by = config.colorBy;
   let lo = 0, hi = 1;
   if (by) {

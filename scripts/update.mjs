@@ -10,12 +10,13 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { openGeocoder } from './geocode.mjs';
-import { refreshEvents, eventsFileExists } from './events.mjs';
+import { refreshEvents, eventsFileExists, fetchEventList, compareSeasons } from './events.mjs';
 
 const API = process.env.FRC_API_BASE || 'https://frc-api.firstinspires.org/v3.0';
 const DATA_DIR = new URL('../site/data/', import.meta.url);
 const TEAMS_FILE = new URL('teams.json', DATA_DIR);
 const ALL_TEAMS_FILE = new URL('all-teams.json', DATA_DIR);
+const EVENT_PLACES_FILE = new URL('event-locations.json', DATA_DIR);
 const META_FILE = new URL('meta.json', DATA_DIR);
 const FEED_FILE = new URL('../site/feed.xml', import.meta.url);
 
@@ -164,6 +165,23 @@ async function main() {
     everyone.push(rec);
   }
   everyone.sort((a, b) => a.number - b.number);
+
+  // Event locations for this season and the last one, for the events map.
+  // Two requests; if either fails the previous file is left as it is.
+  let eventPlaces = null;
+  try {
+    const [current, before] = await Promise.all([
+      fetchEventList({ api: API, auth, season }),
+      fetchEventList({ api: API, auth, season: season - 1 }),
+    ]);
+    eventPlaces = compareSeasons(season, current, before);
+    for (const e of eventPlaces) {
+      const point = await geo.locate(e);
+      if (point) Object.assign(e, point);
+    }
+  } catch (e) {
+    console.warn(`Event locations not refreshed: ${e.message}`);
+  }
   await geo.save();
 
   await mkdir(DATA_DIR, { recursive: true });
@@ -177,6 +195,18 @@ async function main() {
     allPrevious = await readFile(ALL_TEAMS_FILE, 'utf8');
   } catch {}
   if (allPrevious !== allText) await writeFile(ALL_TEAMS_FILE, allText);
+
+  if (eventPlaces) {
+    const head = `"season": ${season},\n"previousSeason": ${season - 1},\n"events": [\n`;
+    const placesText = `{\n${head}${eventPlaces.map((e) => JSON.stringify(e)).join(',\n')}\n]\n}\n`;
+    let placesPrevious = '';
+    try {
+      placesPrevious = await readFile(EVENT_PLACES_FILE, 'utf8');
+    } catch {}
+    if (placesPrevious !== placesText) await writeFile(EVENT_PLACES_FILE, placesText);
+    const count = (s) => eventPlaces.filter((e) => e.status === s).length;
+    console.log(`Event locations: ${count('both')} in both seasons, ${count('new')} new in ${season}, ${count('previous')} only in ${season - 1}`);
+  }
 
   const text = stringify(snap);
   const changed = !previous || stringify(previous) !== text;

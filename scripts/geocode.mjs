@@ -10,8 +10,12 @@
 // are throttled and capped per run; anything left over is picked up next run.
 
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { pathToFileURL } from 'node:url';
 
-const CACHE_FILE = new URL('../cache/geocode.json', import.meta.url);
+// GEOCODE_CACHE points the cache somewhere else (used by tests).
+const CACHE_FILE = process.env.GEOCODE_CACHE
+  ? pathToFileURL(process.env.GEOCODE_CACHE)
+  : new URL('../cache/geocode.json', import.meta.url);
 const ENDPOINT = process.env.GEOCODE_URL || 'https://nominatim.openstreetmap.org/search';
 const USER_AGENT = 'frc-rookie-tracker/1.0';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

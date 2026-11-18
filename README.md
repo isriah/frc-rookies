@@ -17,6 +17,9 @@ number, name, sponsors, location and website. Unofficial; not affiliated with FI
 - `scripts/events.mjs` records which events each rookie is registered for in
   `site/data/events.json`. It needs one request per event, so it runs every
   three hours (and on every manual run) rather than every 30 minutes.
+- `site/data/event-locations.json` lists every event from this season and the
+  previous one, marked as in both, new, or previous-season only, for the
+  event locations map. Events are matched across seasons by event code.
 - Each team's city is turned into map coordinates by `scripts/geocode.mjs`
   (OpenStreetMap's Nominatim). Results are cached in `cache/geocode.json`, so a
   place is only looked up once; at most 60 new places are looked up per run.
