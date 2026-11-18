@@ -20,8 +20,28 @@ const ENDPOINT = process.env.GEOCODE_URL || 'https://nominatim.openstreetmap.org
 const USER_AGENT = 'frc-rookie-tracker/1.0';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-export const placeKey = ({ city, state, country }) =>
-  [city, state, country].map((s) => (s ?? '').trim().toLowerCase()).join('|');
+// Teams list states by name ("North Carolina") and events by code ("NC").
+// Spell US and Canadian codes out so both share one cache entry.
+const STATES = {
+  usa: { AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California', CO: 'Colorado', CT: 'Connecticut',
+    DE: 'Delaware', DC: 'District of Columbia', FL: 'Florida', GA: 'Georgia', HI: 'Hawaii', ID: 'Idaho', IL: 'Illinois',
+    IN: 'Indiana', IA: 'Iowa', KS: 'Kansas', KY: 'Kentucky', LA: 'Louisiana', ME: 'Maine', MD: 'Maryland',
+    MA: 'Massachusetts', MI: 'Michigan', MN: 'Minnesota', MS: 'Mississippi', MO: 'Missouri', MT: 'Montana',
+    NE: 'Nebraska', NV: 'Nevada', NH: 'New Hampshire', NJ: 'New Jersey', NM: 'New Mexico', NY: 'New York',
+    NC: 'North Carolina', ND: 'North Dakota', OH: 'Ohio', OK: 'Oklahoma', OR: 'Oregon', PA: 'Pennsylvania',
+    RI: 'Rhode Island', SC: 'South Carolina', SD: 'South Dakota', TN: 'Tennessee', TX: 'Texas', UT: 'Utah',
+    VT: 'Vermont', VA: 'Virginia', WA: 'Washington', WV: 'West Virginia', WI: 'Wisconsin', WY: 'Wyoming' },
+  canada: { AB: 'Alberta', BC: 'British Columbia', MB: 'Manitoba', NB: 'New Brunswick', NL: 'Newfoundland and Labrador',
+    NS: 'Nova Scotia', ON: 'Ontario', PE: 'Prince Edward Island', QC: 'Quebec', SK: 'Saskatchewan', YT: 'Yukon',
+    NT: 'Northwest Territories', NU: 'Nunavut' },
+};
+
+export const placeKey = ({ city, state, country }) => {
+  const k = (country ?? '').trim().toLowerCase();
+  const s = (state ?? '').trim();
+  const full = s.length === 2 ? STATES[k]?.[s.toUpperCase()] : undefined;
+  return [(city ?? '').trim(), full ?? s, k].map((part) => part.toLowerCase()).join('|');
+};
 
 export async function openGeocoder({ maxLookups = 60, delayMs = 1100 } = {}) {
   let cache = {};

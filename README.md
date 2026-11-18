@@ -20,9 +20,17 @@ number, name, sponsors, location and website. Unofficial; not affiliated with FI
 - `site/data/event-locations.json` lists every event from this season and the
   previous one, each tagged with its season, for the map's year dropdown.
   `EVENT_SEASONS` in `scripts/update.mjs` sets how many years are kept.
-- Each team's city is turned into map coordinates by `scripts/geocode.mjs`
-  (OpenStreetMap's Nominatim). Results are cached in `cache/geocode.json`, so a
-  place is only looked up once; at most 60 new places are looked up per run.
+- Map locations come from three places, most precise first:
+  1. `locations/overrides.json` — hand-entered fixes, `{ "254": { "lat": 37.27, "lon": -121.84 } }`.
+     Add a team here to put it exactly where it belongs.
+  2. `cache/team-locations.json` — postcode-level points from FIRST's old public
+     team search, kept for countries where that data proved reliable (US, Canada,
+     Australia and others; not Türkiye or Mexico). It is a one-time export, so
+     teams newer than it are not in it.
+  3. `cache/geocode.json` — the centre of the team's or event's listed city.
+     Most entries were matched from the [GeoNames](https://www.geonames.org/)
+     place database (CC BY 4.0); `scripts/geocode.mjs` looks up anything new
+     with OpenStreetMap's Nominatim, at most 60 places per run.
 
 ## Setup
 

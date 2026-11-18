@@ -148,11 +148,28 @@ async function main() {
   // Add map coordinates. Places not yet in the cache are looked up a few at a
   // time; teams still waiting simply have no lat/lon until a later run.
   const geo = await openGeocoder({ maxLookups: Number(process.env.GEOCODE_MAX) || 60 });
+  // A team's own location, most precise first: a hand-entered override, then
+  // the postcode-level point from FIRST's old team search, then its city.
+  const readJson = async (url) => {
+    try {
+      return JSON.parse(await readFile(url, 'utf8'));
+    } catch (e) {
+      if (e.code !== 'ENOENT') console.warn(`Ignoring ${url.pathname.split('/').pop()}: ${e.message}`);
+      return {};
+    }
+  };
+  const overrides = await readJson(new URL('../locations/overrides.json', import.meta.url));
+  const known = await readJson(new URL('../cache/team-locations.json', import.meta.url));
+  const valid = (p) => p && Number.isFinite(p.lat) && Number.isFinite(p.lon);
+  const locateTeam = async (t) => {
+    for (const p of [overrides[t.number], known[t.number]]) if (valid(p)) return { lat: p.lat, lon: p.lon };
+    return geo.locate(t);
+  };
   for (const t of snap.teams) {
     delete t.website;
     delete t.lat;
     delete t.lon;
-    const point = await geo.locate(t);
+    const point = await locateTeam(t);
     if (point) Object.assign(t, point);
   }
 
@@ -163,7 +180,7 @@ async function main() {
     if (!Number.isInteger(t.teamNumber)) continue;
     const rec = { number: t.teamNumber, name: clean(t.nameShort), city: clean(t.city), state: clean(t.stateProv),
       country: clean(t.country), rookieYear: Number.isInteger(t.rookieYear) ? t.rookieYear : null };
-    const point = await geo.locate(rec);
+    const point = await locateTeam(rec);
     if (point) Object.assign(rec, point);
     everyone.push(rec);
   }
