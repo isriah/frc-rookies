@@ -59,10 +59,11 @@
   tbody tr:hover td { background: #f8f9fa; }
   td.num { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
   td.name { min-width: 150px; max-width: 380px; overflow: hidden; }
-  .name b { font-weight: 400; overflow-wrap: anywhere; }
+  .nameline { display: flex; align-items: flex-start; gap: 8px; }
+  .name b { font-weight: 400; overflow-wrap: anywhere; flex: 1; min-width: 0; }
   .sponsors { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; max-height: 3em; overflow: hidden; }
   td.seen { white-space: nowrap; }
-  .badge { display: inline-block; font-size: 12px; font-weight: 700; line-height: 1; border-radius: 6px; padding: 4px 8px; margin-left: 6px; color: #fff; vertical-align: 1px; }
+  .badge { display: inline-block; font-size: 12px; font-weight: 700; line-height: 1; border-radius: 6px; padding: 4px 8px; flex: none; margin-top: 4px; color: #fff; }
   .badge.new { background: #198754; }
   .badge.gone { background: #dc3545; }
   tr.removed td { color: var(--muted); }
@@ -169,9 +170,10 @@ function filtered() {
 function render() {
   const list = filtered();
   const rows = list.map((t) => {
-    const nameCell = el('td', { className: 'name' }, el('b', { textContent: t.name || '(unnamed)' }));
-    if (isNew(t)) nameCell.append(el('span', { className: 'badge new', textContent: 'NEW' }));
-    if (t.removed) nameCell.append(el('span', { className: 'badge gone', textContent: 'REMOVED', title: t.note || 'No longer listed since ' + fmtDate(t.removed) }));
+    const nameLine = el('div', { className: 'nameline' }, el('b', { textContent: t.name || '(unnamed)' }));
+    const nameCell = el('td', { className: 'name' }, nameLine);
+    if (isNew(t)) nameLine.append(el('span', { className: 'badge new', textContent: 'NEW' }));
+    if (t.removed) nameLine.append(el('span', { className: 'badge gone', textContent: 'REMOVED', title: t.note || 'No longer listed since ' + fmtDate(t.removed) }));
     if (t.sponsors && t.sponsors !== t.name) nameCell.append(el('div', { className: 'sponsors', textContent: t.sponsors, title: t.sponsors }));
     const site = el('td');
     if (t.website) site.append(el('a', { href: t.website, textContent: 'Link', rel: 'noopener noreferrer nofollow', target: '_blank' }));
