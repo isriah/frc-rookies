@@ -79,8 +79,16 @@ export async function renderMap({ mapEl, legendEl, noteEl, searchEl, countEl, co
   let items = config.items ? file[config.items] : file;
   if (!Array.isArray(items)) throw new Error(`No list of ${config.noun ?? 'items'} in ${config.data}`);
 
-  const map = L.map(mapEl, { worldCopyJump: true, preferCanvas: true }).setView([25, 0], 2);
-  L.tileLayer(tiles.url, { attribution: tiles.attribution, maxZoom: tiles.maxZoom ?? 18 }).addTo(map);
+  // Show the world once: no repeated copies, no panning past the edges, and
+  // no zooming out further than the level where one world fills the map's width.
+  const world = L.latLngBounds([[-85, -180], [85, 180]]);
+  // Quarter-step zoom lets the furthest-out view match the map's width closely.
+  const map = L.map(mapEl, { preferCanvas: true, maxBounds: world, maxBoundsViscosity: 1, zoomSnap: 0.25 });
+  const fitMinZoom = () => map.setMinZoom(Math.max(0, Math.ceil(Math.log2(mapEl.clientWidth / 256) * 4) / 4));
+  fitMinZoom();
+  map.on('resize', fitMinZoom);
+  map.setView([25, 0], map.getMinZoom());
+  L.tileLayer(tiles.url, { attribution: tiles.attribution, maxZoom: tiles.maxZoom ?? 18, noWrap: true, bounds: world }).addTo(map);
   // Plain dots by default; "cluster": true groups nearby points into counts.
   const clustered = config.cluster && typeof L.markerClusterGroup === 'function';
   const group = (clustered ? L.markerClusterGroup({ maxClusterRadius: 40, showCoverageOnHover: false }) : L.layerGroup()).addTo(map);
