@@ -16,6 +16,7 @@
           "items": "teams",
           "label": "{number} {name}",
           "details": [
+            "{school}",
             "{city}, {state}, {country}",
             "Rookie year {rookieYear}"
           ],

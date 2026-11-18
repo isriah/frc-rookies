@@ -178,8 +178,8 @@ async function main() {
   const everyone = [];
   for (const t of all) {
     if (!Number.isInteger(t.teamNumber)) continue;
-    const rec = { number: t.teamNumber, name: clean(t.nameShort), city: clean(t.city), state: clean(t.stateProv),
-      country: clean(t.country), rookieYear: Number.isInteger(t.rookieYear) ? t.rookieYear : null };
+    const rec = { number: t.teamNumber, name: clean(t.nameShort), school: clean(t.schoolName), city: clean(t.city),
+      state: clean(t.stateProv), country: clean(t.country), rookieYear: Number.isInteger(t.rookieYear) ? t.rookieYear : null };
     const point = await locateTeam(rec);
     if (point) Object.assign(rec, point);
     everyone.push(rec);
@@ -200,6 +200,15 @@ async function main() {
     }
   } catch (e) {
     console.warn(`Event locations not refreshed: ${e.message}`);
+  }
+
+  // Last, try each team's school for a more exact pin (rookies first). A hand
+  // override always wins, and a school that can't be found, or that turns up
+  // far from where the team is believed to be, leaves the team where it was.
+  for (const t of [...snap.teams.filter((x) => !x.removed), ...everyone]) {
+    if (valid(overrides[t.number])) continue;
+    const point = await geo.locateSchool(t, valid(t) ? { lat: t.lat, lon: t.lon } : null);
+    if (point) Object.assign(t, point);
   }
   await geo.save();
 

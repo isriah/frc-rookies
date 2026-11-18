@@ -23,11 +23,14 @@ number, name, sponsors, location and website. Unofficial; not affiliated with FI
 - Map locations come from three places, most precise first:
   1. `locations/overrides.json` — hand-entered fixes, `{ "254": { "lat": 37.27, "lon": -121.84 } }`.
      Add a team here to put it exactly where it belongs.
-  2. `cache/team-locations.json` — postcode-level points from FIRST's old public
+  2. `cache/schools.json` — the team's school, looked up by name with
+     OpenStreetMap's Nominatim and accepted only when the match is a school
+     within 30 km of where the team is otherwise placed.
+  3. `cache/team-locations.json` — postcode-level points from FIRST's old public
      team search, kept for countries where that data proved reliable (US, Canada,
      Australia and others; not Türkiye or Mexico). It is a one-time export, so
      teams newer than it are not in it.
-  3. `cache/geocode.json` — the centre of the team's or event's listed city.
+  4. `cache/geocode.json` — the centre of the team's or event's listed city.
      Most entries were matched from the [GeoNames](https://www.geonames.org/)
      place database (CC BY 4.0); `scripts/geocode.mjs` looks up anything new
      with OpenStreetMap's Nominatim, at most 60 places per run.

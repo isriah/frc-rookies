@@ -144,8 +144,13 @@ function counts(list, key) {
 }
 
 function fillStates() {
-  const c = $('country').value;
-  fillSelect($('state'), counts(teams.filter((t) => !t.removed && (!c || t.country === c)), 'state'), 'All states/provinces');
+  // Only offered once a country is chosen, and only if that country's teams
+  // span more than one state/province. Always starts cleared.
+  const c = $('country').value, sel = $('state');
+  const states = c ? counts(teams.filter((t) => !t.removed && t.country === c), 'state') : [];
+  fillSelect(sel, states, 'All states/provinces');
+  sel.value = '';
+  sel.hidden = states.length < 2;
 }
 
 function csv() {

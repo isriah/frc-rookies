@@ -16,6 +16,9 @@ import { pathToFileURL } from 'node:url';
 const CACHE_FILE = process.env.GEOCODE_CACHE
   ? pathToFileURL(process.env.GEOCODE_CACHE)
   : new URL('../cache/geocode.json', import.meta.url);
+const SCHOOL_FILE = process.env.GEOCODE_CACHE
+  ? pathToFileURL(process.env.GEOCODE_CACHE + '.schools.json')
+  : new URL('../cache/schools.json', import.meta.url);
 const ENDPOINT = process.env.GEOCODE_URL || 'https://nominatim.openstreetmap.org/search';
 const USER_AGENT = 'frc-rookie-tracker/1.0';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -43,6 +46,17 @@ export const placeKey = ({ city, state, country }) => {
   return [(city ?? '').trim(), full ?? s, k].map((part) => part.toLowerCase()).join('|');
 };
 
+const isSchool = (hit) =>
+  /^(school|college|university|kindergarten)$/.test(hit.type ?? '') ||
+  (hit.category === 'office' && hit.type === 'educational_institution');
+
+function distanceKm(a, b) {
+  const r = Math.PI / 180;
+  const h = Math.sin(((b.lat - a.lat) * r) / 2) ** 2 +
+    Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(((b.lon - a.lon) * r) / 2) ** 2;
+  return 12742 * Math.asin(Math.sqrt(h));
+}
+
 export async function openGeocoder({ maxLookups = 60, delayMs = 1100 } = {}) {
   let cache = {};
   try {
@@ -50,9 +64,17 @@ export async function openGeocoder({ maxLookups = 60, delayMs = 1100 } = {}) {
   } catch (e) {
     if (e.code !== 'ENOENT') throw e;
   }
-  let lookups = 0, dirty = false, lastCall = 0;
+  // Schools get their own cache file: "school|city|state|country" -> point.
+  let schools = {};
+  try {
+    schools = JSON.parse(await readFile(SCHOOL_FILE, 'utf8'));
+  } catch (e) {
+    if (e.code !== 'ENOENT') throw e;
+  }
+  let lookups = 0, dirty = false, schoolsDirty = false, lastCall = 0;
 
-  async function query(q, attempt = 1) {
+  // The best match for a free-text query, as the service returns it, or null.
+  async function search(q, attempt = 1) {
     const wait = lastCall + delayMs - Date.now();
     if (wait > 0) await sleep(wait);
     lastCall = Date.now();
@@ -63,11 +85,16 @@ export async function openGeocoder({ maxLookups = 60, delayMs = 1100 } = {}) {
       // The public service has brief busy spells; back off and try twice more.
       if ((res.status === 429 || res.status >= 500) && attempt < 3) {
         await sleep(10000 * attempt);
-        return query(q, attempt + 1);
+        return search(q, attempt + 1);
       }
       throw new Error(`geocoder HTTP ${res.status}`);
     }
     const [hit] = await res.json();
+    return hit ?? null;
+  }
+
+  async function query(q) {
+    const hit = await search(q);
     // Three decimals is ~100 m: plenty for a city-level pin.
     return hit ? { lat: +(+hit.lat).toFixed(3), lon: +(+hit.lon).toFixed(3) } : null;
   }
@@ -97,11 +124,43 @@ export async function openGeocoder({ maxLookups = 60, delayMs = 1100 } = {}) {
       dirty = true;
       return point;
     },
+    // A team's school, for a more exact pin than its postcode or city. Only
+    // accepted when the match is actually a school and sits within 30 km of
+    // `near` (where we already believe the team is), so a same-named school
+    // elsewhere is never used. Returns like locate().
+    async locateSchool(team, near) {
+      const name = (team.school ?? '').trim();
+      if (name.length < 5 || /family|community/i.test(name) || !team.city || !team.country) return null;
+      const key = `${name.toLowerCase()}|${placeKey(team)}`;
+      if (key in schools) return schools[key];
+      if (lookups >= maxLookups) return undefined;
+      lookups++;
+      let hit;
+      try {
+        hit = await search([name, team.city, team.state, team.country].filter(Boolean).join(', '));
+      } catch (e) {
+        console.warn(`Geocoding stopped: ${e.message}`);
+        lookups = maxLookups;
+        return undefined;
+      }
+      let point = null;
+      if (hit && isSchool(hit)) {
+        const p = { lat: +(+hit.lat).toFixed(4), lon: +(+hit.lon).toFixed(4) };
+        if (!near || distanceKm(p, near) <= 30) point = p;
+      }
+      schools[key] = point;
+      schoolsDirty = true;
+      return point;
+    },
     async save() {
-      if (!dirty) return;
-      await mkdir(new URL('.', CACHE_FILE), { recursive: true });
-      const sorted = Object.keys(cache).sort().map((k) => `${JSON.stringify(k)}: ${JSON.stringify(cache[k])}`);
-      await writeFile(CACHE_FILE, `{\n${sorted.join(',\n')}\n}\n`);
+      const write = async (file, data) => {
+        await mkdir(new URL('.', file), { recursive: true });
+        const sorted = Object.keys(data).sort().map((k) => `${JSON.stringify(k)}: ${JSON.stringify(data[k])}`);
+        await writeFile(file, `{\n${sorted.join(',\n')}\n}\n`);
+      };
+      if (dirty) await write(CACHE_FILE, cache);
+      if (schoolsDirty) await write(SCHOOL_FILE, schools);
+      dirty = schoolsDirty = false;
     },
     get lookups() { return lookups; },
   };
