@@ -1,7 +1,7 @@
 {
   "tiles": {
     "url": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-    "attribution": "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors",
+    "attribution": "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors · places from <a href=\"https://www.geonames.org/\">GeoNames</a>",
     "maxZoom": 18
   },
   "maps": [
