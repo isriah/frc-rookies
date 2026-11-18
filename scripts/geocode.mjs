@@ -81,6 +81,7 @@ export async function openGeocoder({ maxLookups = 60, delayMs = 1100 } = {}) {
     const res = await fetch(`${ENDPOINT}?format=jsonv2&limit=1&q=${encodeURIComponent(q)}`, {
       headers: { 'User-Agent': USER_AGENT, 'Accept-Language': 'en' },
     });
+    if (res.status === 400) return null; // a query the service can't parse is just a miss
     if (!res.ok) {
       // The public service has brief busy spells; back off and try twice more.
       if ((res.status === 429 || res.status >= 500) && attempt < 3) {
