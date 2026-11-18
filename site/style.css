@@ -17,7 +17,8 @@ a { color: var(--link); }
 .color-strip i:nth-child(2) { background: #f57e25; }
 .color-strip i:nth-child(3) { background: #009cd7; }
 nav { background: var(--navy); color: #fff; padding: 8px 0; }
-.container { width: 100%; max-width: 960px; margin: 0 auto; padding: 0 12px; }
+/* Grows with the window: at least FIRST's 960px, up to 1800px on wide screens. */
+.container { width: 100%; max-width: clamp(960px, 94vw, 1800px); margin: 0 auto; padding: 0 12px; }
 nav .container { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; min-height: 50px; }
 .brand { font-size: 20px; font-weight: 700; }
 .brand small { font-size: 12px; font-weight: 400; opacity: .8; margin-left: 8px; text-transform: uppercase; letter-spacing: .05em; }
@@ -50,11 +51,11 @@ th[aria-sort=ascending]::after { content: " ▲"; font-size: .7em; }
 th[aria-sort=descending]::after { content: " ▼"; font-size: .7em; }
 tbody tr:hover td { background: #f8f9fa; }
 td.num { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
-td.name { min-width: 150px; max-width: 380px; overflow: hidden; }
+td.name { min-width: 150px; max-width: 520px; overflow: hidden; }
 .nameline { display: flex; align-items: flex-start; gap: 8px; }
 .name b { font-weight: 400; overflow-wrap: anywhere; flex: 1; min-width: 0; }
 .sponsors { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; max-height: 3em; overflow: hidden; }
-td.events { font-size: 13px; min-width: 170px; max-width: 260px; }
+td.events { font-size: 13px; min-width: 170px; max-width: 460px; }
 td.events div + div { margin-top: 3px; }
 td.events span { color: var(--muted); white-space: nowrap; }
 td.seen { white-space: nowrap; }
@@ -79,7 +80,7 @@ tr.removed td { color: var(--muted); }
 .navlinks a[aria-current=page] { color: #fff; background: rgba(255,255,255,.15); }
 
 /* Map page */
-#map { height: calc(100vh - 250px); min-height: 420px; background: #dde7ee; }
+#map { height: calc(100vh - 215px); min-height: 420px; background: #dde7ee; }
 .legend { display: flex; flex-wrap: wrap; gap: 6px 20px; align-items: center; margin: 0 0 12px; }
 .legend .legend { margin: 0; }
 #count { margin-left: auto; font-weight: 600; color: var(--text); }
