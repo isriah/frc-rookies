@@ -1,0 +1,171 @@
+// Fetches the season's rookie teams from the FRC Events API and merges them
+// into site/data/teams.json, keeping the date each team was first seen.
+//
+// Required env: FRC_API_USERNAME, FRC_API_TOKEN (free, https://frc-events.firstinspires.org/services/API)
+// Optional env: SEASON (e.g. 2027), FRC_API_BASE (for testing)
+
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { pathToFileURL } from 'node:url';
+
+const API = process.env.FRC_API_BASE || 'https://frc-api.firstinspires.org/v3.0';
+const DATA_DIR = new URL('../site/data/', import.meta.url);
+const TEAMS_FILE = new URL('teams.json', DATA_DIR);
+const META_FILE = new URL('meta.json', DATA_DIR);
+const FEED_FILE = new URL('../site/feed.xml', import.meta.url);
+
+class SeasonUnavailable extends Error {}
+
+// Names are kept as FIRST publishes them; only whitespace is tidied.
+const clean = (s) => (s ?? '').toString().replace(/\s+/g, ' ').trim();
+
+function cleanUrl(raw) {
+  let u = clean(raw);
+  if (!u) return '';
+  if (!/^[a-z][a-z0-9+.-]*:/i.test(u)) u = 'https://' + u;
+  try {
+    const p = new URL(u);
+    return /^https?:$/.test(p.protocol) && p.hostname.includes('.') ? p.href : '';
+  } catch {
+    return '';
+  }
+}
+
+async function fetchSeason(season, auth) {
+  const teams = [];
+  for (let page = 1, pageTotal = 1; page <= pageTotal; page++) {
+    const res = await fetch(`${API}/${season}/teams?page=${page}`, {
+      headers: { Authorization: `Basic ${auth}`, Accept: 'application/json' },
+    });
+    if (res.status === 400 || res.status === 404) {
+      throw new SeasonUnavailable(`season ${season}: HTTP ${res.status}`);
+    }
+    if (!res.ok) throw new Error(`FRC API ${season} page ${page}: HTTP ${res.status}`);
+    const body = await res.json();
+    if (!Array.isArray(body.teams)) throw new Error('FRC API: unexpected response shape');
+    pageTotal = body.pageTotal ?? 1;
+    teams.push(...body.teams);
+    if (page > 200) throw new Error('FRC API: too many pages');
+  }
+  return teams;
+}
+
+const toRecord = (t) => ({
+  number: t.teamNumber,
+  name: clean(t.nameShort),
+  sponsors: clean(t.nameFull),
+  school: clean(t.schoolName),
+  city: clean(t.city),
+  state: clean(t.stateProv),
+  country: clean(t.country),
+  district: clean(t.districtCode),
+  website: cleanUrl(t.website),
+});
+
+export function merge(previous, rookies, season, now) {
+  const sameSeason = previous && previous.season === season;
+  const old = new Map(sameSeason ? previous.teams.map((t) => [t.number, t]) : []);
+  // On the very first snapshot of a season we don't know when teams appeared.
+  const baseline = !sameSeason || previous.teams.length === 0;
+  const out = new Map();
+  for (const r of rookies) {
+    const prev = old.get(r.number);
+    out.set(r.number, { ...r, firstSeen: prev ? prev.firstSeen : baseline ? null : now });
+  }
+  // Keep teams that vanished from the API, flagged, so the list is a record.
+  for (const [number, prev] of old) {
+    if (!out.has(number)) out.set(number, { ...prev, removed: prev.removed ?? now });
+  }
+  return {
+    season,
+    heartbeat: now.slice(0, 7), // changes monthly so the repo never looks inactive
+    teams: [...out.values()].sort((a, b) => a.number - b.number),
+  };
+}
+
+const stringify = (snap) =>
+  `{\n"season": ${snap.season},\n"heartbeat": ${JSON.stringify(snap.heartbeat)},\n"teams": [\n` +
+  snap.teams.map((t) => JSON.stringify(t)).join(',\n') +
+  '\n]\n}\n';
+
+const xml = (s) =>
+  String(s).replace(/[<>&"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' })[c]);
+
+function feed(snap, now) {
+  const recent = snap.teams
+    .filter((t) => t.firstSeen && !t.removed)
+    .sort((a, b) => (a.firstSeen < b.firstSeen ? 1 : a.firstSeen > b.firstSeen ? -1 : b.number - a.number))
+    .slice(0, 100);
+  const updated = recent[0]?.firstSeen ?? now;
+  const entries = recent.map((t) => {
+    const where = [t.city, t.state, t.country].filter(Boolean).join(', ');
+    return `  <entry>
+    <id>urn:frc-rookies:${snap.season}:${t.number}</id>
+    <title>${xml(`${t.number} ${t.name}`)} — ${xml(where)}</title>
+    <updated>${t.firstSeen}</updated>
+    <link href="https://frc-events.firstinspires.org/${snap.season}/team/${t.number}"/>
+    <summary>${xml([t.sponsors, t.website].filter(Boolean).join(' · '))}</summary>
+  </entry>`;
+  });
+  return `<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <id>urn:frc-rookies:${snap.season}</id>
+  <title>${snap.season} FRC Rookie Teams</title>
+  <updated>${updated}</updated>
+  <author><name>FRC Rookie Tracker (unofficial)</name></author>
+${entries.join('\n')}
+</feed>
+`;
+}
+
+async function main() {
+  const { FRC_API_USERNAME: user, FRC_API_TOKEN: token } = process.env;
+  if (!user || !token) throw new Error('Set FRC_API_USERNAME and FRC_API_TOKEN');
+  const auth = Buffer.from(`${user}:${token}`).toString('base64');
+  const nowDate = new Date();
+  const now = nowDate.toISOString().replace(/\.\d+Z$/, 'Z');
+
+  let previous = null;
+  try {
+    previous = JSON.parse(await readFile(TEAMS_FILE, 'utf8'));
+  } catch (e) {
+    if (e.code !== 'ENOENT') throw e;
+  }
+
+  // Next season's teams start registering in spring; before FIRST opens the
+  // new season in the API, fall back to the current one.
+  let season = Number(process.env.SEASON) || nowDate.getUTCFullYear() + (nowDate.getUTCMonth() >= 4 ? 1 : 0);
+  let all;
+  try {
+    all = await fetchSeason(season, auth);
+  } catch (e) {
+    if (!(e instanceof SeasonUnavailable) || process.env.SEASON) throw e;
+    season -= 1;
+    if (previous && previous.season > season) throw e; // never go backwards
+    all = await fetchSeason(season, auth);
+  }
+  if (all.length === 0) throw new Error('FRC API returned no teams; refusing to update');
+
+  const rookies = all.filter((t) => t.rookieYear === season && Number.isInteger(t.teamNumber)).map(toRecord);
+  const snap = merge(previous, rookies, season, now);
+
+  await mkdir(DATA_DIR, { recursive: true });
+  if (previous && previous.season !== season) {
+    await mkdir(new URL('archive/', DATA_DIR), { recursive: true });
+    await writeFile(new URL(`archive/teams-${previous.season}.json`, DATA_DIR), stringify(previous));
+  }
+  const text = stringify(snap);
+  const changed = !previous || stringify(previous) !== text;
+  if (changed) await writeFile(TEAMS_FILE, text);
+  await writeFile(META_FILE, JSON.stringify({ lastChecked: now, season, totalTeams: all.length }) + '\n');
+  await writeFile(FEED_FILE, feed(snap, now));
+
+  const active = snap.teams.filter((t) => !t.removed).length;
+  console.log(`Season ${season}: ${all.length} teams, ${active} rookies, data ${changed ? 'changed' : 'unchanged'}`);
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((e) => {
+    console.error(e.message);
+    process.exit(1);
+  });
+}

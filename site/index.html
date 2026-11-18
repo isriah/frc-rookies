@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FRC Rookie Teams</title>
+<link rel="alternate" type="application/atom+xml" title="New FRC rookie teams" href="feed.xml">
+<style>
+  /* Layout and colours follow the look of FIRST's FRC Events pages. */
+  :root {
+    --navy: #003974; --teal: #6cc2c9; --text: #212529; --muted: #6c757d; --line: #dee2e6;
+    --link: #0d6efd; --bar: #eeeeee; --footer: #231f20;
+  }
+  * { box-sizing: border-box; }
+  html { background: #fff; }
+  body {
+    margin: 0; color: var(--text); min-height: 100vh; display: flex; flex-direction: column;
+    background: linear-gradient(90deg, var(--navy), var(--teal), var(--navy));
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", Arial, sans-serif;
+  }
+  a { color: var(--link); }
+  .color-strip { display: flex; height: 10px; }
+  .color-strip i { flex: 1; }
+  .color-strip i:nth-child(1) { background: #ed1c24; }
+  .color-strip i:nth-child(2) { background: #f57e25; }
+  .color-strip i:nth-child(3) { background: #009cd7; }
+  nav { background: var(--navy); color: #fff; padding: 8px 0; }
+  .container { width: 100%; max-width: 960px; margin: 0 auto; padding: 0 12px; }
+  nav .container { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; min-height: 50px; }
+  .brand { font-size: 20px; font-weight: 700; margin-right: auto; }
+  .brand small { font-size: 12px; font-weight: 400; opacity: .8; margin-left: 8px; text-transform: uppercase; letter-spacing: .05em; }
+  nav input[type=search] {
+    font: inherit; padding: 6px 12px; border: 1px solid #ced4da; border-radius: 6px; background: #fff; color: var(--text);
+    flex: 0 1 280px; min-width: 0;
+  }
+  main { flex: 1; }
+  .sheet { padding: 0; box-shadow: -12px -16px 28px 0 rgba(0,0,0,.6), 12px -16px 28px 0 rgba(0,0,0,.6); background: #fff; min-height: 100%; }
+  .titlebar { background: var(--bar); padding: 8px 12px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; }
+  h1 { margin: 0; font-size: 24px; font-weight: 500; line-height: 1.2; padding: 8px 0; }
+  .sub { color: var(--muted); margin: 0; font-size: 14px; }
+  .content { padding: 12px; }
+  .stats { display: flex; flex-wrap: wrap; gap: 4px 28px; margin: 0 0 12px; }
+  .stat b { font-weight: 700; margin-right: 6px; font-variant-numeric: tabular-nums; }
+  .stat span { font-style: italic; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 12px; }
+  select, button {
+    font: inherit; color: var(--text); background: #fff; border: 1px solid #ced4da; border-radius: 6px; padding: 6px 12px; max-width: 100%;
+  }
+  button { cursor: pointer; color: var(--link); border-color: var(--link); }
+  button:hover { background: var(--link); color: #fff; }
+  label.chk { display: inline-flex; gap: 6px; align-items: center; }
+  .wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-weight: 700; color: #000; white-space: nowrap; user-select: none; border-bottom-width: 2px; }
+  th[data-sort] { cursor: pointer; }
+  th[aria-sort=ascending]::after { content: " ▲"; font-size: .7em; }
+  th[aria-sort=descending]::after { content: " ▼"; font-size: .7em; }
+  tbody tr:hover td { background: #f8f9fa; }
+  td.num { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+  td.name { min-width: 150px; max-width: 380px; overflow: hidden; }
+  .name b { font-weight: 400; overflow-wrap: anywhere; }
+  .sponsors { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; max-height: 3em; overflow: hidden; }
+  td.seen { white-space: nowrap; }
+  .badge { display: inline-block; font-size: 12px; font-weight: 700; line-height: 1; border-radius: 6px; padding: 4px 8px; margin-left: 6px; color: #fff; vertical-align: 1px; }
+  .badge.new { background: #198754; }
+  .badge.gone { background: #dc3545; }
+  tr.removed td { color: var(--muted); }
+  .empty { padding: 28px; text-align: center; color: var(--muted); }
+  .footer-box { background: var(--footer); color: #f8f9fa; font-size: 14px; }
+  .footer-box .container { padding: 16px 12px; }
+  .footer-box p { margin: 0 0 6px; }
+  .footer-box a { color: #f8f9fa; }
+  @media (max-width: 640px) {
+    .hide-sm { display: none; }
+    nav input[type=search] { flex: 1 1 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="color-strip"><i></i><i></i><i></i></div>
+<nav>
+  <div class="container">
+    <span class="brand">FRC Rookie Teams<small>Unofficial</small></span>
+    <input type="search" id="q" placeholder="Team #, name, sponsor, city" aria-label="Search teams">
+  </div>
+</nav>
+<main>
+<div class="container sheet">
+  <div class="titlebar">
+    <h1 id="title">FRC Rookie Teams</h1>
+    <p class="sub" id="status">Loading…</p>
+  </div>
+  <div class="content">
+  <div class="stats" id="stats"></div>
+
+  <div class="controls">
+    <select id="country" aria-label="Country"><option value="">All countries</option></select>
+    <select id="state" aria-label="State or province"><option value="">All states/provinces</option></select>
+    <label class="chk"><input type="checkbox" id="onlyNew"> New only</label>
+    <button id="csv" type="button">Download CSV</button>
+  </div>
+
+  <div class="wrap">
+    <table>
+      <thead>
+        <tr>
+          <th data-sort="number">Team</th>
+          <th data-sort="name">Name</th>
+          <th data-sort="city">City</th>
+          <th data-sort="state">State/Prov</th>
+          <th data-sort="country" class="hide-sm">Country</th>
+          <th>Website</th>
+          <th data-sort="firstSeen">First seen</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="empty" id="empty" hidden>No teams match.</div>
+  </div>
+  </div>
+</div>
+</main>
+<div class="footer-box">
+  <div class="container">
+    <p>Data from the official <a href="https://frc-events.firstinspires.org/services/API">FRC Events API</a>, checked every 30 minutes.
+    This is not an official <i>FIRST</i> site and is not affiliated with <i>FIRST</i>; check <a href="https://www.firstinspires.org">firstinspires.org</a> for authoritative information.</p>
+    <p><a href="feed.xml">Atom feed</a> · <a href="data/teams.json">JSON</a> · Inspired by bobbysq.com/rookies and frcregs.com.</p>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const VISIT_KEY = 'frc-rookies-last-visit';
+let teams = [], season = '', sortKey = 'number', sortDir = -1, newSince = 0;
+
+function el(tag, props = {}, ...kids) {
+  const e = Object.assign(document.createElement(tag), props);
+  e.append(...kids);
+  return e;
+}
+
+const fmtDate = (iso) => new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+const fmtDateTime = (iso) => new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+const isNew = (t) => !t.removed && t.firstSeen && Date.parse(t.firstSeen) > newSince;
+
+function filtered() {
+  const words = $('q').value.toLowerCase().split(/\s+/).filter(Boolean);
+  const country = $('country').value, state = $('state').value, onlyNew = $('onlyNew').checked;
+  const list = teams.filter((t) =>
+    (!country || t.country === country) &&
+    (!state || t.state === state) &&
+    (!onlyNew || isNew(t)) &&
+    words.every((w) => t._search.includes(w)));
+  const cmp = (a, b) => {
+    const x = a[sortKey], y = b[sortKey];
+    if (sortKey === 'number') return x - y;
+    if (!x !== !y) return x ? -1 : 1; // blanks last either direction
+    return String(x ?? '').localeCompare(String(y ?? ''), undefined, { sensitivity: 'base' }) || a.number - b.number;
+  };
+  return list.sort((a, b) => {
+    if (sortKey !== 'number' && !a[sortKey] !== !b[sortKey]) return a[sortKey] ? -1 : 1;
+    return sortDir * cmp(a, b);
+  });
+}
+
+function render() {
+  const list = filtered();
+  const rows = list.map((t) => {
+    const nameCell = el('td', { className: 'name' }, el('b', { textContent: t.name || '(unnamed)' }));
+    if (isNew(t)) nameCell.append(el('span', { className: 'badge new', textContent: 'NEW' }));
+    if (t.removed) nameCell.append(el('span', { className: 'badge gone', textContent: 'REMOVED', title: 'No longer listed since ' + fmtDate(t.removed) }));
+    if (t.sponsors && t.sponsors !== t.name) nameCell.append(el('div', { className: 'sponsors', textContent: t.sponsors, title: t.sponsors }));
+    const site = el('td');
+    if (t.website) site.append(el('a', { href: t.website, textContent: 'Link', rel: 'noopener noreferrer nofollow', target: '_blank' }));
+    const tr = el('tr', { className: t.removed ? 'removed' : '' },
+      el('td', { className: 'num' }, el('a', { href: `https://frc-events.firstinspires.org/${season}/team/${t.number}`, textContent: t.number, rel: 'noopener' })),
+      nameCell,
+      el('td', { textContent: t.city }),
+      el('td', { textContent: t.state }),
+      el('td', { textContent: t.country, className: 'hide-sm' }),
+      site,
+      el('td', { className: 'seen', textContent: t.firstSeen ? fmtDate(t.firstSeen) : '—', title: t.firstSeen ? fmtDateTime(t.firstSeen) : 'Listed before tracking began' }));
+    return tr;
+  });
+  $('rows').replaceChildren(...rows);
+  $('empty').hidden = rows.length > 0;
+  document.querySelectorAll('th[data-sort]').forEach((th) => {
+    if (th.dataset.sort === sortKey) th.setAttribute('aria-sort', sortDir > 0 ? 'ascending' : 'descending');
+    else th.removeAttribute('aria-sort');
+  });
+}
+
+function fillSelect(sel, values, allLabel) {
+  const keep = sel.value;
+  sel.replaceChildren(el('option', { value: '', textContent: allLabel }),
+    ...values.map(([v, n]) => el('option', { value: v, textContent: `${v} (${n})` })));
+  sel.value = values.some(([v]) => v === keep) ? keep : '';
+}
+
+function counts(list, key) {
+  const m = new Map();
+  for (const t of list) if (t[key]) m.set(t[key], (m.get(t[key]) || 0) + 1);
+  return [...m].sort((a, b) => a[0].localeCompare(b[0]));
+}
+
+function fillStates() {
+  const c = $('country').value;
+  fillSelect($('state'), counts(teams.filter((t) => !t.removed && (!c || t.country === c)), 'state'), 'All states/provinces');
+}
+
+function csv() {
+  const cols = ['number', 'name', 'sponsors', 'school', 'city', 'state', 'country', 'district', 'website', 'firstSeen', 'removed'];
+  const cell = (v) => {
+    let s = String(v ?? '');
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; // stop spreadsheets treating names as formulas
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const text = [cols.join(','), ...filtered().map((t) => cols.map((c) => cell(t[c])).join(','))].join('\r\n');
+  const a = el('a', { href: URL.createObjectURL(new Blob(['﻿' + text], { type: 'text/csv' })), download: `frc-rookies-${season}.csv` });
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+async function load() {
+  let data, meta = null;
+  try {
+    const res = await fetch('data/teams.json', { cache: 'no-cache' });
+    if (!res.ok) throw new Error(res.status);
+    data = await res.json();
+    meta = await fetch('data/meta.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  } catch {
+    $('status').textContent = 'Could not load team data.';
+    return;
+  }
+  season = data.season;
+  teams = data.teams.map((t) => ({ ...t,
+    _search: [t.number, t.name, t.sponsors, t.school, t.city, t.state, t.country, t.district].join(' ').toLowerCase() }));
+
+  // "New" = first seen since your previous visit, or in the last 3 days on a first visit.
+  let last = 0;
+  try { last = Number(localStorage.getItem(VISIT_KEY)) || 0; localStorage.setItem(VISIT_KEY, Date.now()); } catch {}
+  newSince = last || Date.now() - 3 * 864e5;
+
+  const active = teams.filter((t) => !t.removed);
+  document.title = $('title').textContent = `${season} FRC Rookie Teams`;
+  $('status').textContent = meta?.lastChecked ? `Last checked ${fmtDateTime(meta.lastChecked)}` : '';
+  const week = Date.now() - 7 * 864e5;
+  const stat = (n, label) => el('div', { className: 'stat' }, el('b', { textContent: n }), el('span', { textContent: label }));
+  $('stats').replaceChildren(
+    stat(active.length, 'rookie teams'),
+    stat(new Set(active.map((t) => t.country).filter(Boolean)).size, 'countries'),
+    stat(active.filter((t) => t.firstSeen && Date.parse(t.firstSeen) > week).length, 'added in last 7 days'),
+    stat(active.filter(isNew).length, last ? 'new since your last visit' : 'new in last 3 days'));
+  fillSelect($('country'), counts(active, 'country'), 'All countries');
+  fillStates();
+  render();
+}
+
+$('q').addEventListener('input', render);
+$('onlyNew').addEventListener('change', render);
+$('state').addEventListener('change', render);
+$('country').addEventListener('change', () => { fillStates(); render(); });
+$('csv').addEventListener('click', csv);
+document.querySelectorAll('th[data-sort]').forEach((th) => th.addEventListener('click', () => {
+  if (sortKey === th.dataset.sort) sortDir = -sortDir;
+  else { sortKey = th.dataset.sort; sortDir = sortKey === 'firstSeen' ? -1 : 1; }
+  render();
+}));
+load();
+</script>
+</body>
+</html>

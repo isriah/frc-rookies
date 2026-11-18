@@ -1,0 +1,4 @@
+# Regenerated on every run and deployed, but not worth a commit each time
+site/data/meta.json
+site/feed.xml
+.claude/
