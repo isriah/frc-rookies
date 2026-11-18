@@ -45,7 +45,9 @@ python -m http.server -d site 8000
 ## Maps
 
 `site/map.html` draws whatever `site/maps.json` describes; `site/js/map.js` is
-the renderer. To add a map, add an entry to `maps` — no new code:
+the renderer. The site ships one map, `everything`, which combines teams,
+removed teams and events. To add another, add an entry to `maps` — no new
+code. A simple single-dataset entry looks like this:
 
 ```json
 {
