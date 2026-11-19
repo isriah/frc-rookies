@@ -5,7 +5,8 @@ number, name, sponsors, location and website. Unofficial; not affiliated with FI
 
 ## How it works
 
-- `.github/workflows/update.yml` runs every 30 minutes.
+- `.github/workflows/update.yml` is scheduled every 15 minutes. GitHub
+  skips a large share of scheduled runs, so real checks are further apart.
 - `scripts/update.mjs` reads the season's teams from the official
   [FRC Events API](https://frc-events.firstinspires.org/services/API), keeps the
   rookies, and merges them into `site/data/teams.json`, recording when each team
@@ -15,8 +16,9 @@ number, name, sponsors, location and website. Unofficial; not affiliated with FI
 - `site/data/all-teams.json` holds every team this season (number, name, city,
   rookie year, coordinates) for the all-teams map.
 - `scripts/events.mjs` records which events each rookie is registered for in
-  `site/data/events.json`. It needs one request per event, so it runs every
-  three hours (and on every manual run) rather than every 30 minutes.
+  `site/data/events.json`. It needs one request per event, so it runs when
+  the last refresh is about three hours old (and on every manual run) rather
+  than on every check. `meta.json` records when that was, as `eventsChecked`.
 - `site/data/event-locations.json` lists every event from this season and the
   previous one, each tagged with its season, for the map's year dropdown.
   `EVENT_SEASONS` in `scripts/update.mjs` sets how many years are kept.

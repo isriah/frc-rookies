@@ -243,22 +243,29 @@ async function main() {
   const text = stringify(snap);
   const changed = !previous || stringify(previous) !== text;
   if (changed) await writeFile(TEAMS_FILE, text);
-  await writeFile(META_FILE, JSON.stringify({ lastChecked: now, season, totalTeams: all.length }) + '\n');
   await writeFile(FEED_FILE, feed(snap, now));
 
-  // Event registrations take a few hundred requests, so only refresh them on
-  // the first run of every third hour, when missing, or when asked to.
+  // Event registrations take a few hundred requests, so only refresh them when
+  // the last refresh is about three hours old, when missing, or when asked to.
+  // Going by age rather than the clock copes with GitHub skipping scheduled runs.
+  let eventsChecked;
+  try {
+    eventsChecked = JSON.parse(await readFile(META_FILE, 'utf8')).eventsChecked;
+  } catch {}
   const mode = process.env.EVENTS;
-  const due = nowDate.getUTCHours() % 3 === 0 && nowDate.getUTCMinutes() < 30;
+  const age = nowDate - new Date(eventsChecked ?? 0);
+  const due = !(age < 2.75 * 3600 * 1000);
   if (mode !== 'never' && (mode === 'always' || due || !(await eventsFileExists()))) {
     try {
       const rookieNumbers = snap.teams.filter((t) => !t.removed).map((t) => t.number);
       const r = await refreshEvents({ api: API, auth, season, rookieNumbers });
+      eventsChecked = now;
       console.log(`Events: ${r.eventsChecked} checked, ${r.eventsWithRookies} with rookies, ${r.teamsRegistered} rookies registered`);
     } catch (e) {
       console.warn(`Event registrations not refreshed: ${e.message}`); // keep the previous file
     }
   }
+  await writeFile(META_FILE, JSON.stringify({ lastChecked: now, season, totalTeams: all.length, eventsChecked }) + '\n');
 
   const active = snap.teams.filter((t) => !t.removed).length;
   console.log(`Season ${season}: ${all.length} teams, ${active} rookies, ${geo.lookups} places geocoded, data ${changed ? 'changed' : 'unchanged'}`);

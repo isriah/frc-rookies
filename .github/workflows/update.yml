@@ -2,7 +2,9 @@ name: Update rookie list
 
 on:
   schedule:
-    - cron: '7,37 * * * *' # every 30 minutes (GitHub may delay scheduled runs)
+    # Every 15 minutes at off-peak minutes. GitHub skips many scheduled runs,
+    # so asking more often is what keeps the real gap short.
+    - cron: '4,19,34,49 * * * *'
   workflow_dispatch:
   push:
     branches: [main]
