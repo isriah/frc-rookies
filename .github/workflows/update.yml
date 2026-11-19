@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
+      url: ${{ steps.deploy.outputs.page_url || steps.redeploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -67,5 +67,16 @@ jobs:
         with:
           path: site
 
+      # GitHub sometimes can't find the artifact a second after it was uploaded,
+      # so a failed deploy is tried once more after a short wait.
       - id: deploy
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+
+      - name: Wait before retrying the deploy
+        if: steps.deploy.outcome == 'failure'
+        run: sleep 20
+
+      - id: redeploy
+        if: steps.deploy.outcome == 'failure'
         uses: actions/deploy-pages@v4
