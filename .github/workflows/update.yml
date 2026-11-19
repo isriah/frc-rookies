@@ -6,6 +6,12 @@ on:
     # so asking more often is what keeps the real gap short.
     - cron: '4,19,34,49 * * * *'
   workflow_dispatch:
+    inputs:
+      events:
+        description: Event registrations (auto = only when about 3 hours old)
+        type: choice
+        options: [always, auto]
+        default: always
   push:
     branches: [main]
     paths: ['site/**', 'scripts/**', 'cache/**', 'locations/**', '.github/workflows/**']
@@ -37,8 +43,9 @@ jobs:
           FRC_API_USERNAME: ${{ secrets.FRC_API_USERNAME }}
           FRC_API_TOKEN: ${{ secrets.FRC_API_TOKEN }}
           SEASON: ${{ vars.SEASON }}
-          # Manual and push-triggered runs always refresh event registrations
-          EVENTS: ${{ github.event_name != 'schedule' && 'always' || '' }}
+          # Pushes and manual runs refresh event registrations; scheduled runs
+          # and the outside timer (trigger/) leave it to the updater's 3-hour rule
+          EVENTS: ${{ github.event_name == 'push' && 'always' || inputs.events || '' }}
         run: node scripts/update.mjs
 
       - name: Commit data changes

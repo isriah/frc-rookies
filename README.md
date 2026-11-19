@@ -48,6 +48,27 @@ number, name, sponsors, location and website. Unofficial; not affiliated with FI
 The season is chosen automatically (next year's season from May onward). To pin
 it, add a repository variable named `SEASON`, e.g. `2027`.
 
+## Outside timer
+
+GitHub's schedule is best-effort and has been skipping most runs, so `trigger/`
+holds a small Cloudflare Worker that starts the workflow every 15 minutes
+instead. GitHub's own schedule stays on as a fallback.
+
+1. On GitHub, go to **Settings → Developer settings → Personal access tokens →
+   Fine-grained tokens** and create a token with **Repository access** set to
+   only this repository and **Actions: Read and write** as its one permission.
+2. Deploy the Worker and give it the token (you are asked to paste it):
+
+   ```
+   cd trigger
+   npx wrangler deploy
+   npx wrangler secret put GITHUB_TOKEN
+   ```
+
+Runs it starts show as "workflow_dispatch" in the Actions tab. `npx wrangler tail`
+shows the Worker's log; a failed call to GitHub is logged with the reason. When
+the token expires, create a new one and repeat the `secret put` step.
+
 ## Run locally
 
 ```

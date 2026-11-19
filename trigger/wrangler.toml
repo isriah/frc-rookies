@@ -1,0 +1,13 @@
+name = "frc-rookies-trigger"
+main = "worker.js"
+compatibility_date = "2026-06-01"
+
+# No public address: the Worker only runs on its timer.
+workers_dev = false
+preview_urls = false
+
+[triggers]
+crons = ["*/15 * * * *"] # every 15 minutes, UTC
+
+[observability]
+enabled = true
