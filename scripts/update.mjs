@@ -4,7 +4,7 @@
 // Each team also gets lat/lon for the map (see geocode.mjs).
 //
 // Required env: FRC_API_USERNAME, FRC_API_TOKEN (free, https://frc-events.firstinspires.org/services/API)
-// Optional env: SEASON (e.g. 2027), FRC_API_BASE (for testing),
+// Optional env: SEASON (e.g. 2027), FRC_API_BASE (for testing), SITE_URL (the published site),
 //   EVENTS=always|never (event registrations normally refresh every 3 hours)
 
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
@@ -248,10 +248,20 @@ async function main() {
   // Event registrations take a few hundred requests, so only refresh them when
   // the last refresh is about three hours old, when missing, or when asked to.
   // Going by age rather than the clock copes with GitHub skipping scheduled runs.
+  // meta.json isn't committed, so on GitHub the last refresh time is read back
+  // from the published site. If that fails, refresh to be safe.
   let eventsChecked;
   try {
     eventsChecked = JSON.parse(await readFile(META_FILE, 'utf8')).eventsChecked;
   } catch {}
+  const [owner, repo] = (process.env.GITHUB_REPOSITORY ?? '').split('/');
+  const siteUrl = process.env.SITE_URL || (repo ? `https://${owner}.github.io/${repo}` : '');
+  if (!eventsChecked && siteUrl) {
+    try {
+      const res = await fetch(`${siteUrl}/data/meta.json`, { cache: 'no-store' });
+      if (res.ok) eventsChecked = (await res.json()).eventsChecked;
+    } catch {}
+  }
   const mode = process.env.EVENTS;
   const age = nowDate - new Date(eventsChecked ?? 0);
   const due = !(age < 2.75 * 3600 * 1000);

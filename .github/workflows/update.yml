@@ -42,8 +42,7 @@ jobs:
         env:
           FRC_API_USERNAME: ${{ secrets.FRC_API_USERNAME }}
           FRC_API_TOKEN: ${{ secrets.FRC_API_TOKEN }}
-          SEASON: ${{ vars.SEASON }}
-          # Pushes and manual runs refresh event registrations; scheduled runs
+          SEASON: ${{ vars.SEASON }}          # Pushes and manual runs refresh event registrations; scheduled runs
           # and the outside timer (trigger/) leave it to the updater's 3-hour rule
           EVENTS: ${{ github.event_name == 'push' && 'always' || inputs.events || '' }}
         run: node scripts/update.mjs
