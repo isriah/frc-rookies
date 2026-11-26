@@ -102,6 +102,7 @@
 "GADOU": {"name":"PCH District Douglasville Event","start":"2027-04-01","end":"2027-04-03","city":"Douglasville","state":"GA","country":"USA","week":5},
 "INFTW": {"name":"FIN District Fort Wayne Event","start":"2027-04-01","end":"2027-04-03","city":"Fort Wayne","state":"IN","country":"USA","week":5},
 "MILAK": {"name":"FIM District Lakeview Event","start":"2027-04-01","end":"2027-04-03","city":"Battle Creek","state":"MI","country":"USA","week":5},
+"MIMCC": {"name":"FIM District Macomb Community College Event","start":"2027-04-01","end":"2027-04-03","city":"Warren","state":"MI","country":"USA","week":5},
 "MISAL": {"name":"FIM District Saline Event","start":"2027-04-01","end":"2027-04-03","city":"Saline","state":"MI","country":"USA","week":5},
 "TXFAR": {"name":"TX District Farmersville Event","start":"2027-04-01","end":"2027-04-03","city":"Farmersville","state":"TX","country":"USA","week":5},
 "WILAX": {"name":"WIN District Seven Rivers Event","start":"2027-04-01","end":"2027-04-03","city":"La Crosse","state":"WI","country":"USA","week":5},
@@ -432,9 +433,11 @@
 "12565": ["MIFOR"],
 "12567": ["ORWIL","ORSAL"],
 "12569": ["NCASH","NCELO"],
+"12570": ["MIKEA"],
 "12572": ["NCASH","NCELO"],
 "12575": ["FLOR"],
 "12580": ["ILCH"],
-"12582": ["MIWSU"]
+"12582": ["MIWSU"],
+"12591": ["MIMCC"]
 }
 }
