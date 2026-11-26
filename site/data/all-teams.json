@@ -2010,7 +2010,7 @@
 {"number":6433,"name":"HZ4Z","school":"Hangzhou #4 High School","city":"Hangzhou","state":"Zhejiang","country":"China","rookieYear":2017,"lat":30.294,"lon":120.161,"loc":"city"},
 {"number":6434,"name":"Bossley Park High School Wolfgang","school":"Bossley Park High School","city":"Bossley Park","state":"New South Wales","country":"Australia","rookieYear":2017,"lat":-33.871,"lon":150.8751,"loc":"school"},
 {"number":6435,"name":"Positron","school":"Etiler Anadolu Lisesi","city":"Istanbul","state":"Istanbul","country":"Türkiye","rookieYear":2017,"lat":41.0767,"lon":29.0282,"loc":"school"},
-{"number":6436,"name":"NARBULUT PARS ROBOTICS","school":"Borsa Istanbul Başakşehir Mesleki ve Teknik Anadolu Lisesi","city":"istanbul","state":"Istanbul","country":"Türkiye","rookieYear":2017,"lat":41.0883,"lon":28.8057,"loc":"school"},
+{"number":6436,"name":"PARS ROBOTICS","school":"Borsa Istanbul Başakşehir Mesleki ve Teknik Anadolu Lisesi","city":"istanbul","state":"Istanbul","country":"Türkiye","rookieYear":2017,"lat":41.0883,"lon":28.8057,"loc":"school"},
 {"number":6443,"name":"AEMBOT","school":"Liberty High School","city":"Hillsboro","state":"Oregon","country":"USA","rookieYear":2017,"lat":45.5623,"lon":-122.9024,"loc":"school"},
 {"number":6451,"name":"Wired Warriors","school":"Whiteland Cmty High School","city":"Whiteland","state":"Indiana","country":"USA","rookieYear":2017,"lat":39.5555,"lon":-86.0913,"loc":"postcode"},
 {"number":6453,"name":"Bog Bots!","school":"Kelliher School","city":"Kelliher","state":"Minnesota","country":"USA","rookieYear":2017,"lat":47.9447,"lon":-94.4516,"loc":"school"},
@@ -2238,6 +2238,7 @@
 {"number":7165,"name":"Perkins Pirates Robotics","school":"Family/Community & Perkins High School","city":"Sandusky","state":"Ohio","country":"USA","rookieYear":2018,"lat":41.405,"lon":-82.7314,"loc":"postcode"},
 {"number":7166,"name":"Red Thunder Robotics","school":"Laingsburg High School","city":"Laingsburg","state":"Michigan","country":"USA","rookieYear":2018,"lat":42.8787,"lon":-84.3431,"loc":"school"},
 {"number":7174,"name":"Charger Robotics","school":"Crestwood High School","city":"Dearborn Heights","state":"Michigan","country":"USA","rookieYear":2018,"lat":42.3212,"lon":-83.2943,"loc":"school"},
+{"number":7177,"name":"Turismo","school":"Amal Taybe High School","city":"tayibe","state":"HaMerkaz","country":"Israel","rookieYear":2018,"lat":32.267,"lon":35.009,"loc":"city"},
 {"number":7178,"name":"Yeti","school":"Walled Lake Western High Sch & Walled Lake Central High Sch & Walled Lake Northern High Sch","city":"Walled Lake","state":"Michigan","country":"USA","rookieYear":2018,"lat":42.5512,"lon":-83.4774,"loc":"postcode"},
 {"number":7183,"name":"W.A.R.","school":"West Career & Tech Acad","city":"Las Vegas","state":"Nevada","country":"USA","rookieYear":2018,"lat":36.14,"lon":-115.3501,"loc":"postcode"},
 {"number":7188,"name":"SaddleBots","school":"Regina High School","city":"Warren","state":"Michigan","country":"USA","rookieYear":2018,"lat":42.5275,"lon":-82.9849,"loc":"school"},
@@ -3710,7 +3711,7 @@
 {"number":12119,"name":"Estelar","school":"Colegio Bertoni Paraná Country Club","city":"Hernandarias","state":"Alto Paraná","country":"Paraguay","rookieYear":2027,"lat":-25.404,"lon":-54.632,"loc":"city"},
 {"number":12120,"name":"Lab Fusion","school":"Family/Community","city":"Surat","state":"Gujarat","country":"India","rookieYear":2027,"lat":21.1941,"lon":72.5018,"loc":"postcode"},
 {"number":12121,"name":"Amaseia Robotics","school":"Şehit Ferhat Ünelli Bilim ve Sanat Merkezi","city":"Amasya/Türkiye","state":"Amasya","country":"Türkiye","rookieYear":2027,"lat":40.653,"lon":35.833,"loc":"city"},
-{"number":12122,"name":"Royal Fusion","school":"Family/Community","city":"Ann Arbor","state":"Michigan","country":"USA","rookieYear":2027,"lat":42.2409,"lon":-83.7194,"loc":"postcode"},
+{"number":12122,"name":"Royal Fusion","school":"The Future Innovators Academy","city":"Ann Arbor","state":"Michigan","country":"USA","rookieYear":2027,"lat":42.2409,"lon":-83.7194,"loc":"postcode"},
 {"number":12123,"name":"VARCA Robo-Engineers","school":"Yadkin Valley Regional Career Academy","city":"Lexington","state":"North Carolina","country":"USA","rookieYear":2027,"lat":35.8257,"lon":-80.2777,"loc":"postcode"},
 {"number":12126,"name":"CrabBots","school":"Stone Bridge High","city":"Ashburn","state":"Virginia","country":"USA","rookieYear":2027,"lat":39.0491,"lon":-77.5095,"loc":"school"},
 {"number":12128,"name":"Botlites","school":"Mason County Central HS","city":"Scottville","state":"Michigan","country":"USA","rookieYear":2027,"lat":43.9569,"lon":-86.2853,"loc":"school"},
@@ -3836,9 +3837,11 @@
 {"number":12565,"name":"Envirobots","school":"West Mi Academy of Environmental Science","city":"Walker","state":"Michigan","country":"USA","rookieYear":2027,"lat":43.006,"lon":-85.774,"loc":"city"},
 {"number":12567,"name":"RoboTrouts","school":"Open Door Christian Academy & Family/Community","city":"Troutdale, OR","state":"Oregon","country":"USA","rookieYear":2027,"lat":45.539,"lon":-122.387,"loc":"city"},
 {"number":12569,"name":"RoboLakers","school":"Mattamuskeet School","city":"Swanquarter","state":"North Carolina","country":"USA","rookieYear":2027,"lat":35.406,"lon":-76.329,"loc":"city"},
+{"number":12570,"name":"Flex High School","school":"Flex High Burton","city":"Flint","state":"Michigan","country":"USA","rookieYear":2027,"lat":43.016,"lon":-83.69,"loc":"city"},
 {"number":12572,"name":"East Forsyth Team","school":"East Forsyth High","city":"Kernersville","state":"North Carolina","country":"USA","rookieYear":2027,"lat":36.12,"lon":-80.074,"loc":"city"},
 {"number":12575,"name":"CALVARY SCHOOL","school":"Calvary City Christian Academy & Preschool","city":"Orlando","state":"Florida","country":"USA","rookieYear":2027,"lat":28.542,"lon":-81.379,"loc":"city"},
 {"number":12580,"name":"Steel Stallions","school":"Amos Alonzo Stagg High School","city":"Palos Hills","state":"Illinois","country":"USA","rookieYear":2027,"lat":41.6861,"lon":-87.8184,"loc":"school"},
-{"number":12582,"name":"Robocats","school":"Riverside Academy West Campus","city":"Dearborn","state":"Michigan","country":"USA","rookieYear":2027,"lat":42.322,"lon":-83.176,"loc":"city"}
+{"number":12582,"name":"Robocats","school":"Riverside Academy West Campus","city":"Dearborn","state":"Michigan","country":"USA","rookieYear":2027,"lat":42.322,"lon":-83.176,"loc":"city"},
+{"number":12591,"name":"New Dawn Aces","school":"New Dawn Academy of Warren","city":"Sterling Heights","state":"Michigan","country":"USA","rookieYear":2027,"lat":42.58,"lon":-83.03,"loc":"city"}
 ]
 }
